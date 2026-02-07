@@ -1,0 +1,12 @@
+{
+  "name": "spanish-testing",
+  "private": true,
+  "scripts": {
+    "build": "npm run gcp-build",
+    "gcp-build": "cd frontend && npm install && npm run build && cd .. && mkdir -p backend/frontend-dist && cp -r frontend/dist/* backend/frontend-dist/",
+    "start": "cd backend && npm start"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
