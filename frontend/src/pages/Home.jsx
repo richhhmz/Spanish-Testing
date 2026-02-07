@@ -7,6 +7,7 @@ import { setEffectiveUserId } from '../utils/User.js';
 import { useSnackbar } from 'notistack';
 import { useNavigate } from 'react-router-dom';
 import { BackLog } from '../utils/BackLog.js';
+import { DefaultFooter } from './DefaultFooter.jsx';
 
 const HomePage = () => {
   const [loading, setLoading] = useState(true);
@@ -212,6 +213,7 @@ const HomePage = () => {
           <li><Link to="/spanish/editProfile" className="block py-4 text-center text-blue-600 hover:bg-blue-50 rounded-b-2xl">Your Profile</Link></li>
         </ul>
       </nav>
+      <DefaultFooter />
     </div>
   );
 };
