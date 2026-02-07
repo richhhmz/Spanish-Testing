@@ -3,7 +3,7 @@ export const DefaultFooter = () => {
 
     return (
         <div>
-            <footer className="ml-1 text-sm">
+            <footer className="ml-1 text-sm mb-10">
                 <p>&nbsp;</p>
                 <p>
                     &copy; {currentYear} ProgSpanLrn. All rights reserved v1.1
