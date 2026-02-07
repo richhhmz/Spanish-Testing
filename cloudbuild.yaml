@@ -1,30 +1,40 @@
-substitutions:
-  _IMAGE_NAME: europe-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/spanish-testing/spanish-testing
+# cloudbuild.yaml - build Docker image from Dockerfile and deploy to Cloud Run
 
 steps:
-  # 1. Build image
+  # 1. Build the image
   - name: gcr.io/cloud-builders/docker
-    args: ['build', '-t', '$_IMAGE_NAME:$COMMIT_SHA', '.']
+    args:
+      [
+        'build',
+        '-t',
+        'europe-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/spanish-testing/spanish-testing:$COMMIT_SHA',
+        '.'
+      ]
 
-  # 2. Push image
+  # 2. Push the image
   - name: gcr.io/cloud-builders/docker
-    args: ['push', '$_IMAGE_NAME:$COMMIT_SHA']
+    args:
+      [
+        'push',
+        'europe-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/spanish-testing/spanish-testing:$COMMIT_SHA'
+      ]
 
-  # 3. Deploy to Cloud Run
+  # 3. Deploy that image to Cloud Run service "spanish-testing"
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk
     entrypoint: gcloud
     args:
-      - run
-      - deploy
-      - spanish-testing
-      - --image=$_IMAGE_NAME:$COMMIT_SHA
-      - --region=europe-west1
-      - --platform=managed
-      - --allow-unauthenticated
+      [
+        'run',
+        'deploy',
+        'spanish-testing',
+        '--image=europe-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/spanish-testing/spanish-testing:$COMMIT_SHA',
+        '--region=europe-west1',
+        '--platform=managed',
+        '--allow-unauthenticated'
+      ]
 
 images:
-  - '$_IMAGE_NAME:$COMMIT_SHA'
+  - 'europe-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/spanish-testing/spanish-testing:$COMMIT_SHA'
 
 options:
-  # This satisfies the new Cloud Build requirement when a service account is set
   logging: CLOUD_LOGGING_ONLY
