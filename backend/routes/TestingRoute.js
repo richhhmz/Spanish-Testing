@@ -318,7 +318,6 @@ const createTestsRouter = (
   });
 
   router.post('/auth/login', async (req, res) => {
-    console.log("/auth/login");
     const { userId } = req.body;
 
     // TODO: validate userId properly
@@ -351,9 +350,9 @@ const createTestsRouter = (
     // 🍪 Store refresh token as httpOnly cookie
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      sameSite: 'lax',
-      secure: false, // true in production (HTTPS)
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      sameSite: 'strict', // or 'lax' if you need cross-site
+      secure: true,       // MUST be true in production (Cloud Run is HTTPS)
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     // ⬅️ Send ONLY access token to React
@@ -363,17 +362,18 @@ const createTestsRouter = (
 
   /* ───────────────────────── Utilities ───────────────────────── */
 
-  router.get('/ping', async (_req, res) => {
+  router.get('/ping', requireAuth, async (_req, res) => {
     const count = await profileCount(profilesDBConnection);
-    res.status(200).json({ data: `pong: profiles=${count}`});
+    res.status(200).json({ data: `pong: profiles=${count}` });
   });
 
-  router.get('/resetCache', (_req, res) => {
+  router.get('/resetCache', requireAuth, async (req, res) => {
+    if (!req.user.isAdmin) return res.status(403).json({ error: 'Forbidden' });
     resetCache();
     res.status(200).json({ data: 'Cache was reset.' });
   });
 
-  router.post('/backlog', (req, res) => {
+  router.post('/backlog', requireAuth, (req, res) => {
     const { message, context } = req.body;
 
     const timestamp = new Date().toISOString();

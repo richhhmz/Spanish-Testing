@@ -2,14 +2,25 @@ import mongoose from 'mongoose';
 
 export const MessageSchema = new mongoose.Schema(
   {
-    messageDate: {
+    messageNew: { // "new" if new else blank
       type: String,
       required: true,
     },
-    userId: {
+    messageType: { // system, ping, user, broadcast
       type: String,
-      required: false,
-      unique: true,
+      required: true,
+    },
+    messageDateAndTime: {
+      type: String,
+      required: true,
+    },
+    messageFrom: { // ping, system, user
+      type: String,
+      required: true,
+    },
+    messageTo: { // pong, all, user
+      type: String,
+      required: true,
     },
     subject: {
       type: String,

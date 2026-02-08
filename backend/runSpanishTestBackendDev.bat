@@ -1,3 +1,0 @@
-echo TESTING
-node .
-pause
