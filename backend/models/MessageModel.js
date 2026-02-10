@@ -4,7 +4,7 @@ export const MessageSchema = new mongoose.Schema(
   {
     messageNew: { // "new" if new else blank
       type: String,
-      required: true,
+      required: false,
     },
     messageType: { // system, ping, user, broadcast
       type: String,

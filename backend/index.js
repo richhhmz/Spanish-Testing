@@ -14,6 +14,7 @@ import {
   profilesDBURL,
   spanishWordsDBURL,
   spanishTestsDBURL,
+  messagesDBURL
 } from './config.js';
 
 // 1. Setup Environment
@@ -63,10 +64,13 @@ if (folderExists) {
 const profilesDBConnection = mongoose.createConnection(profilesDBURL);
 const spanishWordsDBConnection = mongoose.createConnection(spanishWordsDBURL);
 const spanishTestsDBConnection = mongoose.createConnection(spanishTestsDBURL);
+const messagesDBConnection = mongoose.createConnection(messagesDBURL);
 
 app.locals.profilesDB = profilesDBConnection;
 app.locals.spanishWordsDB = spanishWordsDBConnection;
 app.locals.spanishTestsDB = spanishTestsDBConnection;
+app.locals.messagesDB = messagesDBConnection;
+
 
 // 6. Health Check (Required for Cloud Run)
 app.get('/healthz', (req, res) => res.status(200).send('ok'));
@@ -75,7 +79,8 @@ app.get('/healthz', (req, res) => res.status(200).send('ok'));
 app.use('/', testsRoute(
   profilesDBConnection,
   spanishWordsDBConnection,
-  spanishTestsDBConnection
+  spanishTestsDBConnection,
+  messagesDBConnection
 ));
 
 // 8. SPA Fallback

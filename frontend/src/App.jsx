@@ -9,6 +9,7 @@ import { TodaysSpanishTests } from './pages/TodaysSpanishTests';
 import { EditSpanishTest } from './pages/EditSpanishTest';
 import { ViewSpanishTest } from './pages/ViewSpanishTest';
 import { EditProfile } from './pages/EditProfile';
+import { MessageList } from './pages/MessageList';
 import { QuickWordLookup } from './pages/QuickWordLookup';
 import { TranslationSearch } from './pages/TranslationSearch';
 import { ResetCache } from './pages/ResetCache';
@@ -30,6 +31,7 @@ const App = () => {
         <Route path="/spanish/home" element={<Home />} />
         <Route path="/spanish/allSpanishTests" element={<SpanishTestList />} />
         <Route path="/spanish/todaysSpanishTests" element={<TodaysSpanishTests />} />
+        <Route path="/messages" element={<MessageList />} />
         <Route path="/spanish/quickWordLookup" element={<QuickWordLookup />} />
         <Route path="/spanish/translationSearch" element={<TranslationSearch />} />
         <Route path="/spanish/viewTest/:word/:source" element={<ViewSpanishTest />} />

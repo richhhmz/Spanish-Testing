@@ -25,7 +25,7 @@ const connection = USE_ATLAS === 'true' ? atlasBase : localBase;
 export const profilesDBURL     = `${connection}/learners?${atlasOptions}`;
 export const spanishWordsDBURL = `${connection}/spanish?${atlasOptions}`;
 export const spanishTestsDBURL = `${connection}/learning?${atlasOptions}`;
-export const messagesDBURL     = `${connection}/admin?${atlasOptions}`;
+export const messagesDBURL     = `${connection}/app?${atlasOptions}`;
 
 export const spanishTestingName = '_spanish_test';
 export const englishTestingName = '_english_test';

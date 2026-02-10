@@ -1,6 +1,7 @@
 import express from 'express';
 import { getProfile, updateProfile, profileCount } from '../tools/UserProfile.js';
 import { getAllSpanishWords, updateWord } from '../tools/Words.js';
+import { getMessages, addMessage, deleteMessage } from '../tools/Messages.js';
 import {
   getTest,
   getTodaysSpanishTests,
@@ -18,7 +19,8 @@ if(isDebug)console.log('📦 [chat]TestingRoute loaded');
 const createTestsRouter = (
   profilesDBConnection,
   spanishWordsDBConnection,
-  spanishTestsDBConnection
+  spanishTestsDBConnection,
+  messagesDBConnection
 ) => {
   const router = express.Router();
 
@@ -58,6 +60,61 @@ const createTestsRouter = (
     try {
       const words = await getAllSpanishWords(spanishWordsDBConnection);
       res.status(200).json({ data: words });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  router.get('/api/messageList', requireAuth, async (_req, res) => {
+    try {
+      const messages = await getMessages(messagesDBConnection);
+      res.status(200).json({ data: messages });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  router.post('/api/addMessage', requireAuth, async (req, res) => {
+    try {
+      const savedMessage = await addMessage(
+        messagesDBConnection,
+        req.body
+      );
+
+      res.status(201).json({
+        data: savedMessage,
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: err.message });
+    }
+  });
+  router.post('/api/deleteMessage', requireAuth, async (req, res) => {
+    try {
+      const { messageId } = req.body;
+
+      if (!messageId) {
+        return res.status(400).json({
+          message: 'messageId is required',
+        });
+      }
+
+      const deletedMessage = await deleteMessage(
+        messagesDBConnection,
+        messageId
+      );
+
+      if (!deletedMessage) {
+        return res.status(404).json({
+          message: 'Message not found',
+        });
+      }
+
+      res.status(200).json({
+        data: deletedMessage,
+      });
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: err.message });
