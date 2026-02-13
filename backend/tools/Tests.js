@@ -109,7 +109,6 @@ export const getTest = async (word, userId, spanishWordsDBConnection, spanishTes
         wordDoc: wordDoc,
         testDoc: testDoc
     };
-    // console.log("getTest wordTestDoc="+JSON.stringify(wordTestDoc,null,2));
     return wordTestDoc;
 }
 

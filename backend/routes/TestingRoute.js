@@ -1,5 +1,10 @@
 import express from 'express';
-import { getProfile, updateProfile, profileCount } from '../tools/UserProfile.js';
+import {
+  getProfile,
+  updateProfile,
+  profileCount,
+  setSubscriptionInfo,
+} from '../tools/UserProfile.js';
 import { getAllSpanishWords, updateWord } from '../tools/Words.js';
 import { getMessages, addMessage, deleteMessage } from '../tools/Messages.js';
 import {
@@ -13,8 +18,6 @@ import jwt from 'jsonwebtoken';
 import { requireAuth } from '../middleware/auth.js';
 import effectiveUserMiddleware from '../middleware/EffectiveUser.js';
 import { isDebug } from '../config.js';
-
-if(isDebug)console.log('📦 [chat]TestingRoute loaded');
 
 const createTestsRouter = (
   profilesDBConnection,
@@ -32,6 +35,14 @@ const createTestsRouter = (
       return null;
     }
     return req.effectiveUserId || req.user.userId;
+  };
+
+  // Simple admin guard for admin-only routes
+  const requireAdmin = (req, res, next) => {
+    if (!req.user?.isAdmin) {
+      return res.status(403).json({ error: 'Forbidden: admin only' });
+    }
+    next();
   };
 
   /* ───────────────────────── Spanish routes ───────────────────────── */
@@ -167,25 +178,24 @@ const createTestsRouter = (
 
   router.put('/api/spanish/updateWord/:word', requireAuth, effectiveUserMiddleware,
     async (req, res) => {
-    try {
-      // if(isDebug)console.log(`req.body=${JSON.stringify(req.body, 2, null)}`);
-      const userId = req.effectiveUserId;
-      if (!userId) return;
+      try {
+        const userId = req.effectiveUserId;
+        if (!userId) return;
 
-      const { word } = req.params;
+        const { word } = req.params;
 
-      const test = await updateWord(
-        word,
-        spanishWordsDBConnection,
-        req.body
-      );
+        const test = await updateWord(
+          word,
+          spanishWordsDBConnection,
+          req.body
+        );
 
-      res.status(200).json({ data: test });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: err.message });
-    }
-  });
+        res.status(200).json({ data: test });
+      } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: err.message });
+      }
+    });
 
   router.get('/api/spanish/todaysSpanishTests', requireAuth, effectiveUserMiddleware,
     async (req, res) => {
@@ -301,10 +311,39 @@ const createTestsRouter = (
     res.json({ message: 'Impersonation reset' });
   });
 
-  router.get('/auth/effective-user', requireAuth, async (req, res) => {
-    if (isDebug) console.log('➡️ [route] GET /api/auth/effective-user');
-    if (isDebug) console.log('[route] req.user =', req.user);
+  // Admin: set subscription info for a user
+  router.post('/admin/set-subscription', requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { targetUserId, status, plan } = req.body;
 
+      if (!targetUserId) {
+        return res.status(400).json({ error: 'targetUserId is required' });
+      }
+      if (!status) {
+        return res.status(400).json({ error: 'status is required' });
+      }
+
+      const subscriptionUpdates = { status };
+      if (plan) subscriptionUpdates.plan = plan;
+
+      const updatedProfile = await setSubscriptionInfo(
+        targetUserId,
+        profilesDBConnection,
+        subscriptionUpdates
+      );
+
+      if (!updatedProfile) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      res.json({ ok: true, subscription: updatedProfile.subscription });
+    } catch (err) {
+      console.error('Error in /admin/set-subscription:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  router.get('/auth/effective-user', requireAuth, async (req, res) => {
     try {
       const realUserId = req.user.userId;
 
@@ -322,40 +361,24 @@ const createTestsRouter = (
         impersonating: !!profile.impersonation?.active
       };
 
-      if (isDebug) console.log('📤 [route] effective-user response:', response);
-
       res.json(response);
-
-      if (isDebug) console.log('✅ [route] /api/auth/effective-user sent');
     } catch (err) {
-      console.log('❌ [route] /api/auth/effective-user error:', err);
       res.status(500).json({ error: 'Failed to resolve effective user' });
     }
   });
 
   router.post('/auth/refresh', async (req, res) => {
     try {
-      if(isDebug)console.log("/auth/refresh");
-      if(isDebug)console.log('/auth/refresh cookies:', req.cookies);
       const refreshToken = req.cookies?.refreshToken;
 
       if (!refreshToken) {
-        if(isDebug)console.log("/auth/refresh is returning 401, No refresh token");
         return res.status(401).json({ error: 'No refresh token' });
       }
-
-      if(isDebug)console.log("Verify refreshToken");
       // Verify refresh token
       const payload = jwt.verify(
         refreshToken,
         process.env.JWT_REFRESH_SECRET
       );
-    if (isDebug) {
-      console.log('✅ [auth] refresh - Refresh verified:', payload);
-      console.log('[auth] Issued at:', new Date(payload.iat * 1000).toISOString());
-      console.log('[auth] Expires at:', new Date(payload.exp * 1000).toISOString());
-      console.log('[auth] Current time:', new Date().toISOString());
-    }
 
       // Issue new access token
       const newAccessToken = jwt.sign(
@@ -369,7 +392,6 @@ const createTestsRouter = (
 
       return res.json({ accessToken: newAccessToken });
     } catch (err) {
-      if(isDebug)console.log("/auth/refresh returning 401 Refresh token expired or invalid");
       return res.status(401).json({ error: 'Refresh token expired or invalid' });
     }
   });
@@ -395,14 +417,6 @@ const createTestsRouter = (
       process.env.JWT_REFRESH_SECRET,
       { expiresIn: '7d' }
     );
-
-    if (isDebug) {
-      const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-      console.log('✅ [auth] login - refresh decoded:', decoded);
-      console.log('[auth] Issued at:', new Date(decoded.iat * 1000).toISOString());
-      console.log('[auth] Expires at:', new Date(decoded.exp * 1000).toISOString());
-      console.log('[auth] Current time:', new Date().toISOString());
-    }
 
     // 🍪 Store refresh token as httpOnly cookie
     res.cookie('refreshToken', refreshToken, {

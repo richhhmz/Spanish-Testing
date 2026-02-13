@@ -4,11 +4,9 @@ import { getWords, setWords } from './cache.js';
 export const getAllSpanishWords = async (spanishWordsDBConnection) => {
     // If we already have a cached copy, return it immediately
     if (getWords()) {
-        // console.log("getAllSpanishWords getting from cache");
         return getWords();
     }
 
-    // console.log("getAllSpanishWords getting from database");
     const spanishWordModel = spanishWordsDBConnection.model("Word", WordSchema);
     const spanishWords = await spanishWordModel.find({});
 

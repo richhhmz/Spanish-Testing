@@ -52,7 +52,6 @@ const Login = () => {
       });
 
       const { token } = res.data;
-      if(isDebug)console.log(`token=${token}`);
 
       // 💾 Store token
       localStorage.setItem('authToken', token);

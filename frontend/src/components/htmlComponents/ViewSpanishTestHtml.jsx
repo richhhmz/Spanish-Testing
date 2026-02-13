@@ -9,7 +9,6 @@ import { DefaultFooter } from '../../pages/DefaultFooter.jsx';
 class ViewSpanishTestHtml extends Component {
   constructor(props) {
     super(props);
-    // console.log("viewSpanishTestData=" + JSON.stringify(props.viewSpanishTestData,null,2));
     this.state = {
       viewSpanishTestData: props.viewSpanishTestData,
       source: props.source,

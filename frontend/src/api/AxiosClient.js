@@ -23,8 +23,6 @@ const resolveQueue = (error, token = null) => {
 /* ───────────────── REQUEST ───────────────── */
 
 AxiosClient.interceptors.request.use((config) => {
-  if (isDebug)
-    console.log('📤 Axios request:', config.method, config.url);
 
   // 🚫 Never attach token to auth endpoints
   if (config.url === '/auth/login' || config.url === '/auth/refresh') {
@@ -75,9 +73,6 @@ AxiosClient.interceptors.response.use(
 
       // ⏳ Another refresh already in progress → queue
       if (isRefreshing) {
-        if (isDebug)
-          console.log('⏳ Waiting for refresh to complete');
-
         return new Promise((resolve, reject) => {
           refreshQueue.push({ resolve, reject });
         }).then(token => {
@@ -97,9 +92,6 @@ AxiosClient.interceptors.response.use(
 
         localStorage.setItem('authToken', newToken);
         resolveQueue(null, newToken);
-
-        if (isDebug)
-          console.log('✅ Token refreshed');
 
         original.headers.Authorization = `Bearer ${newToken}`;
         return AxiosClient(original);

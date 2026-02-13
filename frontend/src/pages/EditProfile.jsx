@@ -22,11 +22,9 @@ export const EditProfile = () => {
       setLoading(true);
       try {
         const whoRes = await axios.get('/api/auth/effective-user');
-        // console.log(`EditProfile.jsx effectiveUserId=${whoRes.data.effectiveUserId}`);
         setEffectiveUserId(whoRes.data.effectiveUserId);
         const profileRes = await axios.get('/api/spanish/getProfile');
         const data = profileRes.data.data;
-        // console.log(`EditProfile getProfileData=${JSON.stringify(profileRes.data.data,2,null)}`);
 
         setProfileData(data);
         setMaxWords(data.testsPerDay || 20);

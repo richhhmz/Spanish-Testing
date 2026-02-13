@@ -6,9 +6,6 @@ export const randomSelectByScore = (word, score, lastTestDate, frequency) => {
   const c = 1.17; // curvature controls the number of candidate days around the base
   const y = 0.5 * (c**exponent); // 50% probability at base days
   const r = Math.random();
-  if(score <= 4){
-    // console.log("word="+word+", score="+score+", daysSince="+daysSince+", exponent="+exponent+", r="+r+", y="+y);
-  }
   return r <= y;
 }
 

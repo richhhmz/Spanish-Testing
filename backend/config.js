@@ -36,3 +36,9 @@ export const defaultPreviousTestDate = '1947-04-01';
 export const defaultLastMessageReadDate = '1947-04-01';
 
 export const isDebug=false;
+
+export const STRIPE_SECRET_KEY      = process.env.STRIPE_SECRET_KEY;
+export const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY;
+export const STRIPE_PRICE_ID        = process.env.STRIPE_PRICE_ID;
+
+export const FRONTEND_BASE_URL = process.env.FRONTEND_BASE_URL;
