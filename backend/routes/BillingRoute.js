@@ -30,8 +30,9 @@ const createBillingRouter = (profilesDBConnection) => {
     '/webhook',
     express.raw({ type: 'application/json' }),
     async (req, res) => {
-      const sig = req.headers['stripe-signature'];
+      console.log('🔔 Stripe webhook received');
 
+      const sig = req.headers['stripe-signature'];
       let event;
 
       try {
@@ -40,20 +41,37 @@ const createBillingRouter = (profilesDBConnection) => {
           sig,
           process.env.STRIPE_WEBHOOK_SECRET
         );
+
+        console.log('✅ Stripe event type:', event.type);
       } catch (err) {
-        console.error('❌ Stripe signature verification failed:', err.message);
+        console.error('❌ Webhook signature verification failed:', err.message);
         return res.status(400).send(`Webhook Error: ${err.message}`);
       }
 
       try {
+        const profileModel = profilesDBConnection.model(
+          'Profile',
+          ProfileSchema
+        );
+
         switch (event.type) {
+
+          /* ─────────────────────────
+             Checkout completed
+          ───────────────────────── */
           case 'checkout.session.completed': {
             const session = event.data.object;
 
+            console.log('💰 checkout.session.completed fired');
+            console.log('🧾 session.mode:', session.mode);
+
+            if (session.mode !== 'subscription') {
+              console.log('ℹ️ Ignored — not subscription mode');
+              break;
+            }
+
             const stripeCustomerId = session.customer;
             const stripeSubscriptionId = session.subscription;
-
-            const profileModel = profilesDBConnection.model('Profile', ProfileSchema);
 
             const profile = await profileModel.findOne({
               'subscription.stripeCustomerId': stripeCustomerId,
@@ -69,64 +87,60 @@ const createBillingRouter = (profilesDBConnection) => {
               stripeSubscriptionId,
             });
 
+            console.log('✅ Subscription activated for:', profile.userId);
             break;
           }
 
+          /* ─────────────────────────
+             Subscription updated
+          ───────────────────────── */
           case 'customer.subscription.updated':
+          case 'customer.subscription.created':
           case 'customer.subscription.deleted': {
+
             const sub = event.data.object;
-
             const stripeCustomerId = sub.customer;
-            const stripeSubscriptionId = sub.id;
-            const status = sub.status;
 
-            const currentPeriodEnd = sub.current_period_end
-              ? new Date(sub.current_period_end * 1000)
-              : null;
-
-            const profileModel = profilesDBConnection.model(
-              'Profile',
-              ProfileSchema
-            );
+            console.log('🔄 Subscription change:', sub.status);
 
             const profile = await profileModel.findOne({
               'subscription.stripeCustomerId': stripeCustomerId,
             });
 
             if (!profile) {
-              console.warn(
-                '⚠️ No profile found for Stripe customer:',
-                stripeCustomerId
-              );
+              console.warn('⚠️ No profile found for Stripe customer:', stripeCustomerId);
               break;
             }
 
-            await setSubscriptionInfo(
-              profile.userId,
-              profilesDBConnection,
-              {
-                status,
-                stripeSubscriptionId,
-                currentPeriodEnd,
-              }
-            );
+            await setSubscriptionInfo(profile.userId, profilesDBConnection, {
+              status: sub.status,
+              stripeSubscriptionId: sub.id,
+              currentPeriodEnd: sub.current_period_end
+                ? new Date(sub.current_period_end * 1000)
+                : null,
+            });
 
+            console.log('✅ Subscription updated for:', profile.userId);
             break;
           }
 
+          /* ─────────────────────────
+             Ignore other events
+          ───────────────────────── */
           default:
             console.log('ℹ️ Ignored Stripe event:', event.type);
         }
 
-        return res.status(200).json({ received: true });
+        res.json({ received: true });
+
       } catch (err) {
-        console.error('❌ Error processing Stripe webhook:', err);
-        return res.status(500).send('Webhook handler error');
+        console.error('❌ Error processing webhook:', err);
+        res.status(500).send('Webhook handler error');
       }
     }
   );
 
-  /* ───────────────────────────── CREATE CHECKOUT SESSION ───────────────────────────── */
+/* ───────────────────────────── CREATE CHECKOUT SESSION ───────────────────────────── */
 
   router.post(
     '/create-checkout-session',
