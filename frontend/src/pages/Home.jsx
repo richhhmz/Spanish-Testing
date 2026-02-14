@@ -370,11 +370,8 @@ const HomePage = () => {
             onClick={handleSubscribeClick}
             className="w-full py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700"
           >
-            Subscribe – $5/month (test mode)
+            Subscribe – $5/month
           </button>
-          <p className="mt-2 text-xs text-center text-gray-600">
-            Uses Stripe test mode. No real charges while you are developing.
-          </p>
         </div>
       )}
 
