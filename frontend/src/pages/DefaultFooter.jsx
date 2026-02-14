@@ -6,7 +6,7 @@ export const DefaultFooter = () => {
             <footer className="ml-1 text-sm mb-10">
                 <p>&nbsp;</p>
                 <p>
-                    &copy; {currentYear} ProgSpanLrn. All rights reserved v1.2
+                    &copy; {currentYear} ProgSpanLrn. All rights reserved v2.1
                 </p>
                 <p>
                     Words used on this site are from{' '}
