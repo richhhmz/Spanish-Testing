@@ -147,9 +147,10 @@ const createBillingRouter = (profilesDBConnection) => {
     requireAuth,
     effectiveUserMiddleware,
     async (req, res) => {
+      console.log('✅ HIT create-checkout-session', req.path);
       try {
         const userId = req.effectiveUserId;
-
+        console.log("before profile");
         const profileModel = profilesDBConnection.model(
           'Profile',
           ProfileSchema
@@ -170,12 +171,16 @@ const createBillingRouter = (profilesDBConnection) => {
 
           stripeCustomerId = customer.id;
 
+          console.log("before setSubscriptionInfo");
+
           await setSubscriptionInfo(userId, profilesDBConnection, {
             stripeCustomerId,
           });
         }
 
-        const session = await stripe.checkout.sessions.create({
+          console.log("before stripe.checkout.sessions.create");
+
+          const session = await stripe.checkout.sessions.create({
           mode: 'subscription',
           customer: stripeCustomerId,
           line_items: [
@@ -187,6 +192,8 @@ const createBillingRouter = (profilesDBConnection) => {
           success_url: `${FRONTEND_BASE_URL}/spanish/home?billing=success`,
           cancel_url: `${FRONTEND_BASE_URL}/spanish/home?billing=cancelled`,
         });
+
+        console.log("before return");
 
         return res.json({ url: session.url });
       } catch (err) {
