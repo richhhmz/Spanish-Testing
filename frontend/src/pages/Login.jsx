@@ -155,7 +155,7 @@ const Login = () => {
           </div>
         </div>
 
-        {/* Login form
+        Login form
         <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow">
           <input
             type="email"
@@ -175,7 +175,7 @@ const Login = () => {
           >
             {loading ? 'Signing in…' : 'Continue'}
           </button>
-        </form> */}
+        </form>
       </div>
     </div>
   );

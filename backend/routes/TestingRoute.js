@@ -457,6 +457,24 @@ const createTestsRouter = (
     res.status(200).json({ ok: true });
   });
 
+  app.get('/public', (req, res) => {
+    res.send(`
+    <html>
+      <head><title>Progressive Spanish Learning</title></head>
+      <body>
+        <h1>Progressive Spanish Learning</h1>
+        <p>
+        This application teaches Spanish vocabulary using a progressive learning system...
+        </p>
+        <p><strong>Price:</strong> $5.00/month</p>
+        <p>Cancel anytime.</p>
+        <p>
+          Support: <a href="https://progspanlrn.com/support">Click here for customer support</a>
+        </p>
+      </body>
+    </html>
+  `);
+  });
 
   return router;
 };
