@@ -261,7 +261,7 @@ const HomePage = () => {
       )}
 
       <h1 className="text-3xl font-bold mb-4 text-gray-800">
-        Welcome, {displayName}
+        Welcome, {displayName.split('@')[0]}
       </h1>
 
       <h2 className="text-xl text-gray-700 mb-8 text-center">

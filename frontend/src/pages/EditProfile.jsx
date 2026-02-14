@@ -105,7 +105,7 @@ export const EditProfile = () => {
       <div className="grid grid-cols-[130px_1fr] gap-y-3 mb-6">
         <div className="text-right font-semibold pr-2">User ID:</div>
         <div className="truncate">
-          {truncate(profileData.userId)}
+          {truncate(profileData.userId).split('@')[0]}
         </div>
 
         <div className="text-right font-semibold pr-2">

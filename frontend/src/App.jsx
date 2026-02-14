@@ -15,6 +15,7 @@ import { TranslationSearch } from './pages/TranslationSearch';
 import { ResetCache } from './pages/ResetCache';
 import { Ping } from './utils/Ping';
 import { BackLog } from './utils/BackLog';
+import { Public } from './pages/Public';
 
 const App = () => {
   return (
@@ -24,6 +25,7 @@ const App = () => {
       <Route path="/login" element={<Login />} />
       <Route path="/ping" element={<Ping />} />
       <Route path="/backlog" element={<BackLog />} />
+      <Route path="/public" element={<Public />} />
 
       {/* PROTECTED */}
       <Route element={<ProtectedRoute />}>

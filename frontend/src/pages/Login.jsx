@@ -140,18 +140,6 @@ const Login = () => {
             <div className="font-semibold">Price: $5.00/month</div>
 
             <div className="mt-1 text-sm text-gray-700">Cancel anytime.</div>
-
-            <div className="mt-3 text-sm text-gray-700">
-              <a
-                href="https://progspanlrn.com/support"
-                className="text-blue-600 hover:underline"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Click here for customer support
-              </a>
-              .
-            </div>
           </div>
         </div>
 
