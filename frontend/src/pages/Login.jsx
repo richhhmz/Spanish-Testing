@@ -3,8 +3,10 @@ import React, { useState, useEffect } from 'react';
 import axios from '../api/AxiosClient';
 import { useSnackbar } from 'notistack';
 import { useNavigate } from 'react-router-dom';
+import { BackLog } from '../utils/BackLog';
 
 const Login = () => {
+  // BackLog("Loggin in");
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -33,7 +35,7 @@ const Login = () => {
         if (cancelled) return;
 
         if (res.status === 200) {
-          navigate('/spanish/home', { replace: true });
+          navigate('/', { replace: true });
           return;
         }
 
@@ -97,7 +99,7 @@ const Login = () => {
       const { token } = res.data;
       localStorage.setItem('authToken', token);
 
-      navigate('/spanish/home', { replace: true });
+      navigate('/', { replace: true });
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.error || 'Login failed');

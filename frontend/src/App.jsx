@@ -30,7 +30,6 @@ const App = () => {
       {/* PROTECTED */}
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<Home />} />
-        <Route path="/spanish/home" element={<Home />} />
         <Route path="/spanish/allSpanishTests" element={<SpanishTestList />} />
         <Route path="/spanish/todaysSpanishTests" element={<TodaysSpanishTests />} />
         <Route path="/messages" element={<MessageList />} />

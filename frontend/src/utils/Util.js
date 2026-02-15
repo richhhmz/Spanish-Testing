@@ -21,7 +21,7 @@ export const homeIfNotToday = async (enqueueSnackbar) => {
         { variant: 'info', autoHideDuration: 5000, }
       );
       setTimeout(() => {
-        window.location.href = '/spanish/home';
+        window.location.href = '/';
       }, 5000);
       newDay = true;
     }
@@ -46,7 +46,7 @@ export const getUrlForCode = (code) => {
     return '/spanish/translationSearch';
   }
   else {
-    return '/spanish/home';
+    return '/';
   }
 };
 

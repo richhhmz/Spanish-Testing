@@ -5,6 +5,7 @@ import axios from '../api/AxiosClient';
 import { getTodaysDate } from '../utils/Util.js';
 import { setEffectiveUserId as cacheEffectiveUserId } from '../utils/User.js';
 import { useSnackbar } from 'notistack';
+import { DefaultHeader } from './DefaultHeader.jsx';
 import { DefaultFooter } from './DefaultFooter.jsx';
 
 const HomePage = () => {
@@ -130,7 +131,7 @@ const HomePage = () => {
       });
 
       // HARD reload → resets all frontend state cleanly
-      window.location.href = '/spanish/home';
+      window.location.href = '/';
     } catch (err) {
       console.error(err);
       alert('Impersonation failed');
@@ -143,7 +144,7 @@ const HomePage = () => {
   const handleStopImpersonating = async () => {
     try {
       await axios.post('/admin/reset-impersonation');
-      window.location.href = '/spanish/home';
+      window.location.href = '/';
     } catch (err) {
       console.error(err);
       alert(err.response?.data?.error || 'Failed to stop impersonation');
@@ -242,6 +243,8 @@ const HomePage = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center p-8">
+      <DefaultHeader />
+
       {/* Impersonation banner */}
       {impersonating && (
         <div className="w-full max-w-2xl bg-red-100 border border-red-400 text-red-800 px-4 py-3 rounded mb-6 flex justify-between items-center">

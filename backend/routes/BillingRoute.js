@@ -189,8 +189,8 @@ const createBillingRouter = (profilesDBConnection) => {
               quantity: 1,
             },
           ],
-          success_url: `${FRONTEND_BASE_URL}/spanish/home?billing=success`,
-          cancel_url: `${FRONTEND_BASE_URL}/spanish/home?billing=cancelled`,
+          success_url: `${FRONTEND_BASE_URL}/?billing=success`,
+          cancel_url: `${FRONTEND_BASE_URL}/?billing=cancelled`,
         });
 
         console.log("before return");
@@ -232,7 +232,7 @@ const createBillingRouter = (profilesDBConnection) => {
 
         const portalSession = await stripe.billingPortal.sessions.create({
           customer: stripeCustomerId,
-          return_url: `${FRONTEND_BASE_URL}/spanish/home`,
+          return_url: `${FRONTEND_BASE_URL}/`,
         });
 
         return res.json({ url: portalSession.url });

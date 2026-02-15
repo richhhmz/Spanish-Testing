@@ -77,7 +77,7 @@ export const EditProfile = () => {
       });
 
       // 🔁 FULL reload so Home re-initializes impersonation
-      window.location.href = '/spanish/home';
+      window.location.href = '/';
     } catch (error) {
       enqueueSnackbar('Error updating profile', {
         variant: 'error',
@@ -174,7 +174,7 @@ export const EditProfile = () => {
         <button
           onClick={() => {
             // 🔁 FULL reload on cancel as well
-            window.location.href = '/spanish/home';
+            window.location.href = '/';
           }}
           className="bg-gray-300 hover:bg-gray-400 text-black font-semibold px-3 py-1 rounded-md"
         >
