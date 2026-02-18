@@ -17,6 +17,10 @@ import { resetCache } from '../tools/cache.js';
 import jwt from 'jsonwebtoken';
 import { requireAuth } from '../middleware/auth.js';
 import effectiveUserMiddleware from '../middleware/EffectiveUser.js';
+import crypto from 'crypto';
+import LoginAttempt from '../models/LoginAttempt.js';
+import MagicLink from '../models/MagicLink.js';
+import { sendMagicLinkEmail } from '../tools/email.js';
 import { isDebug } from '../config.js';
 
 const createTestsRouter = (
@@ -46,6 +50,38 @@ const createTestsRouter = (
   };
 
   /* ───────────────────────── Spanish routes ───────────────────────── */
+
+  router.get('/magic/test-email', async (req, res) => {
+    try {
+      console.log('[test-email] hit');
+
+      const hasKey = !!process.env.SENDGRID_API_KEY;
+      const from = process.env.EMAIL_FROM;
+      const origin = process.env.APP_ORIGIN;
+
+      console.log('[test-email] env', {
+        hasSendgridKey: hasKey,
+        emailFrom: from,
+        appOrigin: origin,
+      });
+
+      await sendMagicLinkEmail({
+        to: 'richhhmz@gmail.com',
+        linkUrl: `${origin}/magic?token=test`,
+      });
+
+      console.log('[test-email] sent ok');
+      res.json({ ok: true });
+    } catch (err) {
+      console.error('[test-email] failed', err?.response?.body || err);
+
+      res.status(500).json({
+        ok: false,
+        error: err?.message || 'send failed',
+        sendgrid: err?.response?.body || null,
+      });
+    }
+  });
 
   router.get('/api/spanish/allSpanishTests', requireAuth, effectiveUserMiddleware, async (req, res) => {
     try {
@@ -397,37 +433,87 @@ const createTestsRouter = (
   });
 
   router.post('/auth/login', async (req, res) => {
-    const { userId } = req.body;
+    try {
+      const { userId } = req.body;
 
-    // TODO: validate userId properly
-    if (!userId) {
-      return res.status(400).json({ error: 'Missing userId' });
+      if (!userId) {
+        return res.status(400).json({ error: 'Missing userId' });
+      }
+
+      const profile = await getProfile(userId, profilesDBConnection);
+
+      if (!profile) {
+        return res.status(401).json({ error: 'Invalid userId' });
+      }
+
+      // ✅ Create a one-time login-attempt token (10 minutes)
+      const loginAttemptToken = crypto.randomBytes(32).toString('hex');
+
+      await LoginAttempt.create({
+        userId,
+        token: loginAttemptToken,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+      });
+
+      // ✅ JWT access/refresh tokens
+      const accessToken = jwt.sign(
+        { userId, isAdmin: !!profile.isAdmin },
+        process.env.JWT_SECRET,
+        { expiresIn: '15m' }
+      );
+
+      const refreshToken = jwt.sign(
+        { userId, isAdmin: !!profile.isAdmin },
+        process.env.JWT_REFRESH_SECRET,
+        { expiresIn: '7d' }
+      );
+
+      // 🍪 Store refresh token as httpOnly cookie
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        path: '/',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
+      // ⬅️ Send access token (+ loginAttemptToken if you actually use it)
+      res.json({ token: accessToken, loginAttemptToken });
+    } catch (err) {
+      console.error('Login error:', err);
+      res.status(500).json({ error: 'Server error during login' });
     }
+  });
 
-    const profile = await getProfile(userId, profilesDBConnection);
-
-    const accessToken = jwt.sign(
-      { userId, isAdmin: profile.isAdmin },
-      process.env.JWT_SECRET,
-      { expiresIn: '15m' }
-    );
-
-    const refreshToken = jwt.sign(
-      { userId, isAdmin: profile.isAdmin },
-      process.env.JWT_REFRESH_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    // 🍪 Store refresh token as httpOnly cookie
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      sameSite: 'strict', // or 'lax' if you need cross-site
-      secure: true,       // MUST be true in production (Cloud Run is HTTPS)
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+  router.get('/auth/email-confirm/:token', async (req, res) => {
+    const attempt = await LoginAttempt.findOne({
+      token: req.params.token,
+      status: 'pending',
+      expiresAt: { $gt: new Date() }
     });
 
-    // ⬅️ Send ONLY access token to React
-    res.json({ token: accessToken });
+    if (!attempt) {
+      return res.redirect('/login?error=expired');
+    }
+
+    attempt.status = 'approved';
+    await attempt.save();
+
+    const jwtToken = generateJWT(attempt.userId);
+
+    res.cookie('token', jwtToken, { httpOnly: true });
+    res.redirect('/');
+  });
+
+  router.get('/auth/email-cancel/:token', async (req, res) => {
+    const attempt = await LoginAttempt.findOne({ token: req.params.token });
+
+    if (attempt) {
+      attempt.status = 'cancelled';
+      await attempt.save();
+    }
+
+    res.redirect('/login?cancelled=true');
   });
 
 

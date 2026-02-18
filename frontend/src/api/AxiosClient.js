@@ -1,5 +1,8 @@
+// frontend/src/api/AxiosClient.js
 import axios from 'axios';
 import { isDebug } from '../globals.js';
+// import { BackLog } from '../utils/BackLog'; // ONLY if you really use it
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 const AxiosClient = axios.create({
@@ -12,104 +15,60 @@ const AxiosClient = axios.create({
 let isRefreshing = false;
 let refreshQueue = [];
 
-const resolveQueue = (error, token = null) => {
-  refreshQueue.forEach(p => {
-    if (error) p.reject(error);
-    else p.resolve(token);
+const resolveQueue = (error = null) => {
+  refreshQueue.forEach(({ resolve, reject }) => {
+    if (error) reject(error);
+    else resolve();
   });
   refreshQueue = [];
 };
 
 /* ───────────────── REQUEST ───────────────── */
 
-AxiosClient.interceptors.request.use((config) => {
-
-  // 🚫 Never attach token to auth endpoints
-  if (config.url === '/auth/login' || config.url === '/auth/refresh') {
-    return config;
-  }
-
-  const token = localStorage.getItem('authToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-
-  return config;
-});
+// ✅ No Authorization header at all (cookie auth only)
+AxiosClient.interceptors.request.use((config) => config);
 
 /* ───────────────── RESPONSE ───────────────── */
 
 AxiosClient.interceptors.response.use(
-  res => res,
-  async err => {
+  (res) => res,
+  async (err) => {
     const original = err.config;
 
-    /* ---------------------------------------------------------
-       🔴 HARD FAIL: refresh endpoint must NEVER retry or queue
-       --------------------------------------------------------- */
-    if (err.response?.status === 401 && original?.url === '/auth/refresh') {
-      if (isDebug)
-        BackLog.warn('⛔ Refresh token invalid — logging out');
+    // If we don't have a config, just reject
+    if (!original) return Promise.reject(err);
 
-      localStorage.removeItem('authToken');
-      isRefreshing = false;
-      refreshQueue = [];
+    // Don't loop forever
+    if (original._retry) return Promise.reject(err);
 
+    // Never retry refresh itself
+    if (original.url === '/auth/refresh') {
+      if (isDebug) console.warn('⛔ Refresh failed — redirecting to /login');
       window.location.replace('/login?reason=session-expired');
-
-      // HARD STOP — prevent hanging promises
-      return new Promise(() => {});
+      return new Promise(() => {}); // hard stop
     }
 
-    /* ---------------------------------------------------------
-       🔁 Normal access-token refresh flow
-       --------------------------------------------------------- */
-    if (
-      err.response?.status === 401 &&
-      !original._retry &&
-      original.url !== '/auth/refresh'
-    ) {
+    // On 401, try refresh ONCE, then retry original
+    if (err.response?.status === 401) {
       original._retry = true;
 
-      // ⏳ Another refresh already in progress → queue
+      // If a refresh is already happening, wait for it
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           refreshQueue.push({ resolve, reject });
-        }).then(token => {
-          original.headers.Authorization = `Bearer ${token}`;
-          return AxiosClient(original);
-        });
+        }).then(() => AxiosClient(original));
       }
 
       isRefreshing = true;
 
-      if (isDebug)
-        console.warn('🔄 JWT expired — attempting refresh');
-
       try {
-        const refresh = await AxiosClient.post('/auth/refresh');
-        const newToken = refresh.data.accessToken;
-
-        localStorage.setItem('authToken', newToken);
-        resolveQueue(null, newToken);
-
-        original.headers.Authorization = `Bearer ${newToken}`;
+        await AxiosClient.post('/auth/refresh'); // ✅ refresh via cookies
+        resolveQueue(null);
         return AxiosClient(original);
-
       } catch (refreshErr) {
-        if (isDebug)
-          console.warn('⛔ Refresh failed — session expired');
-
-        // 🔴 RELEASE ALL WAITING REQUESTS
         resolveQueue(refreshErr);
-
-        localStorage.removeItem('authToken');
-        isRefreshing = false;
-
         window.location.replace('/login?reason=session-expired');
-
-        // 🔴 HARD STOP
-        return new Promise(() => {});
+        return new Promise(() => {}); // hard stop
       } finally {
         isRefreshing = false;
       }

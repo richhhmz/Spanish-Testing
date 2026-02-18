@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 
 import testsRoute from './routes/TestingRoute.js';
 import createBillingRouter from './routes/BillingRoute.js';
+import magicLinkRoute from './routes/MagicLinkRoute.js';
 
 import {
   PORT,
@@ -24,79 +25,84 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-/* ───────────────────────────── Diagnostics ───────────────────────────── */
+/* ───────────────────────────── Proxy / Cloud Run ───────────────────────────── */
+// Required so secure cookies + req.ip work correctly behind Cloud Run
+app.set('trust proxy', 1);
 
-app.use((req, res, next) => {
-  next();
-});
-
-// In Docker, the path will be /app/backend/frontend-dist
+/* ───────────────────────────── Static Frontend Path ───────────────────────────── */
 const frontendDistPath = path.join(__dirname, 'frontend-dist');
-
 const folderExists = fs.existsSync(frontendDistPath);
 
-if (folderExists) {
-  const contents = fs.readdirSync(frontendDistPath);
-} else {
-  console.error(
-    `[Server] ❌ ERROR: Folder not found! Current directory contains: ${fs.readdirSync(
-      __dirname
-    )}`
-  );
+/* ───────────────────────────── Diagnostics ───────────────────────────── */
+console.log(`[Server] Environment: ${IS_DEV ? 'Development' : 'Production'}`);
+console.log(`[Server] Static path: ${frontendDistPath}`);
+console.log(`[Server] Static folder exists: ${folderExists}`);
+
+if (!folderExists) {
+  try {
+    console.error(
+      `[Server] ❌ frontend-dist missing. Current dir contains: ${fs.readdirSync(__dirname).join(', ')}`
+    );
+  } catch (err) {
+    console.error('[Server] ❌ Could not inspect directory:', err);
+  }
 }
 
 /* ───────────────────────────── CORS ───────────────────────────── */
+// If frontend + backend share same origin in production, this is still safe.
+const PROD_ORIGIN = process.env.FRONTEND_ORIGIN || 'https://progspanlrn.com';
+const devOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
 
-if (IS_DEV) {
-  app.use(
-    cors({
-      origin: 'http://localhost:5173',
-      credentials: true,
-    })
-  );
-}
-
+app.use(
+  cors({
+    origin: IS_DEV ? devOrigins : PROD_ORIGIN,
+    credentials: true,
+  })
+);
 /* ───────────────────────────── DB Connections ───────────────────────────── */
-
 const profilesDBConnection = mongoose.createConnection(profilesDBURL);
 const spanishWordsDBConnection = mongoose.createConnection(spanishWordsDBURL);
 const spanishTestsDBConnection = mongoose.createConnection(spanishTestsDBURL);
 const messagesDBConnection = mongoose.createConnection(messagesDBURL);
+
+// Optional connection logging
+for (const [name, conn] of [
+  ['profilesDB', profilesDBConnection],
+  ['spanishWordsDB', spanishWordsDBConnection],
+  ['spanishTestsDB', spanishTestsDBConnection],
+  ['messagesDB', messagesDBConnection],
+]) {
+  conn.on('connected', () => console.log(`[DB] ✅ Connected: ${name}`));
+  conn.on('error', (err) => console.error(`[DB] ❌ Error (${name}):`, err));
+}
 
 app.locals.profilesDB = profilesDBConnection;
 app.locals.spanishWordsDB = spanishWordsDBConnection;
 app.locals.spanishTestsDB = spanishTestsDBConnection;
 app.locals.messagesDB = messagesDBConnection;
 
-/* ───────────────────────────── Billing Router (MUST be before express.json for Stripe webhooks) ───────────────────────────── */
-
+/* ───────────────────────────── Billing Router ───────────────────────────── */
+/* MUST come before express.json if using Stripe raw body */
 const billingRouter = createBillingRouter(profilesDBConnection);
-
-app.use(
-  '/api/billing',
-  (req, res, next) => {
-    next();
-  },
-  billingRouter
-);
+app.use('/api/billing', billingRouter);
 
 /* ───────────────────────────── Parsers ───────────────────────────── */
-
 app.use(express.json());
 app.use(cookieParser());
 
-/* ───────────────────────────── Static Frontend ───────────────────────────── */
+/* ───────────────────────────── Magic Link Routes ───────────────────────────── */
+/* Mounted at root because /auth/login is in TestingRoute */
+app.use('/', magicLinkRoute);
 
+/* ───────────────────────────── Static Frontend ───────────────────────────── */
 if (folderExists) {
   app.use(express.static(frontendDistPath));
 }
 
-/* ───────────────────────────── Health ───────────────────────────── */
-
+/* ───────────────────────────── Health Check ───────────────────────────── */
 app.get('/healthz', (req, res) => res.status(200).send('ok'));
 
 /* ───────────────────────────── Main Routes ───────────────────────────── */
-
 app.use(
   '/',
   testsRoute(
@@ -108,11 +114,8 @@ app.use(
 );
 
 /* ───────────────────────────── SPA Fallback ───────────────────────────── */
-
 if (folderExists) {
-  // This catches all non-API requests and serves index.html
   app.get('*', (req, res) => {
-    // Prevent serving index.html for missing static assets (like .js or .css files)
     if (req.path.includes('.')) {
       return res.status(404).send('Resource not found');
     }
@@ -135,7 +138,6 @@ if (folderExists) {
 }
 
 /* ───────────────────────────── Listen ───────────────────────────── */
-
 app.listen(PORT, () => {
   console.log(`🚀 Server listening on port ${PORT}`);
 });

@@ -16,6 +16,8 @@ import { ResetCache } from './pages/ResetCache';
 import { Ping } from './utils/Ping';
 import { BackLog } from './utils/BackLog';
 import { Public } from './pages/Public';
+import MagicLinkLanding from './pages/MagicLinkLanding.jsx';
+import WaitingForEmail from './pages/WaitingForEmail.jsx';
 
 const App = () => {
   return (
@@ -26,6 +28,8 @@ const App = () => {
       <Route path="/ping" element={<Ping />} />
       <Route path="/backlog" element={<BackLog />} />
       <Route path="/public" element={<Public />} />
+      <Route path="/waiting-for-email" element={<WaitingForEmail />} />
+      <Route path="/magic" element={<MagicLinkLanding />} />
 
       {/* PROTECTED */}
       <Route element={<ProtectedRoute />}>
