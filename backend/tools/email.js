@@ -2,7 +2,7 @@
 import sgMail from '@sendgrid/mail';
 import {
   isProd,
-  APP_BASE_URL,
+  FRONTEND_ORIGIN,
   SENDGRID_API_KEY,
   SENDGRID_FROM_EMAIL
 } from '../config.js';
