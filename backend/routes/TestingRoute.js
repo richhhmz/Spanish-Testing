@@ -19,7 +19,6 @@ import { requireAuth } from '../middleware/auth.js';
 import effectiveUserMiddleware from '../middleware/EffectiveUser.js';
 import crypto from 'crypto';
 import LoginAttempt from '../models/LoginAttempt.js';
-import MagicLink from '../models/MagicLink.js';
 import { sendMagicLinkEmail } from '../tools/email.js';
 import { isDebug } from '../config.js';
 
