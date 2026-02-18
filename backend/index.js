@@ -34,6 +34,7 @@ const frontendDistPath = path.join(__dirname, 'frontend-dist');
 const folderExists = fs.existsSync(frontendDistPath);
 
 /* ───────────────────────────── Diagnostics ───────────────────────────── */
+console.log('[BOOT] index.js loaded');
 console.log(`[Server] Environment: ${IS_DEV ? 'Development' : 'Production'}`);
 console.log(`[Server] Static path: ${frontendDistPath}`);
 console.log(`[Server] Static folder exists: ${folderExists}`);
@@ -138,6 +139,8 @@ if (folderExists) {
 }
 
 /* ───────────────────────────── Listen ───────────────────────────── */
+console.log('[BOOT] about to listen on PORT=', process.env.PORT);
+
 app.listen(PORT, () => {
   console.log(`🚀 Server listening on port ${PORT}`);
 });
