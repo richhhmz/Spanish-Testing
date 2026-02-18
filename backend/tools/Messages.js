@@ -1,7 +1,7 @@
 import { MessageSchema } from '../models/MessageModel.js';
 
-export const getMessages = async (messagesDBConnection) => {
-  const messageModel = messagesDBConnection.model('Message', MessageSchema);
+export const getMessages = async (appDBConnection) => {
+  const messageModel = appDBConnection.model('Message', MessageSchema);
   const messages = await messageModel.find({});
 
   messages.sort((a, b) =>
@@ -11,8 +11,8 @@ export const getMessages = async (messagesDBConnection) => {
   return messages;
 };
 
-export const addMessage = async (messagesDBConnection, messageData) => {
-  const messageModel = messagesDBConnection.model('Message', MessageSchema);
+export const addMessage = async (appDBConnection, messageData) => {
+  const messageModel = appDBConnection.model('Message', MessageSchema);
 
   const now = new Date();
 
@@ -30,8 +30,8 @@ export const addMessage = async (messagesDBConnection, messageData) => {
   return savedMessage;
 };
 
-export const deleteMessage = async (messagesDBConnection, messageId) => {
-  const messageModel = messagesDBConnection.model('Message', MessageSchema);
+export const deleteMessage = async (appDBConnection, messageId) => {
+  const messageModel = appDBConnection.model('Message', MessageSchema);
 
   // Returns the deleted document, or null if not found
   const deleted = await messageModel.findByIdAndDelete(messageId);

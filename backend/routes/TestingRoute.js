@@ -27,7 +27,7 @@ const createTestsRouter = (
   profilesDBConnection,
   spanishWordsDBConnection,
   spanishTestsDBConnection,
-  messagesDBConnection
+  appDBConnection
 ) => {
   const router = express.Router();
 
@@ -57,7 +57,7 @@ const createTestsRouter = (
 
       const hasKey = !!process.env.SENDGRID_API_KEY;
       const from = process.env.EMAIL_FROM;
-      const origin = process.env.APP_ORIGIN;
+      const origin = process.env.FRONTEND_ORIGIN;
 
       console.log('[test-email] env', {
         hasSendgridKey: hasKey,
@@ -115,7 +115,7 @@ const createTestsRouter = (
 
   router.get('/api/messageList', requireAuth, async (_req, res) => {
     try {
-      const messages = await getMessages(messagesDBConnection);
+      const messages = await getMessages(appDBConnection);
       res.status(200).json({ data: messages });
     } catch (err) {
       console.error(err);
@@ -126,7 +126,7 @@ const createTestsRouter = (
   router.post('/api/addMessage', requireAuth, async (req, res) => {
     try {
       const savedMessage = await addMessage(
-        messagesDBConnection,
+        appDBConnection,
         req.body
       );
 
@@ -149,7 +149,7 @@ const createTestsRouter = (
       }
 
       const deletedMessage = await deleteMessage(
-        messagesDBConnection,
+        appDBConnection,
         messageId
       );
 

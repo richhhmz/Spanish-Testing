@@ -4,14 +4,12 @@ import axios from '../api/AxiosClient';
 import { useSnackbar } from 'notistack';
 import { DefaultHeader } from './DefaultHeader.jsx';
 import { DefaultFooter } from './DefaultFooter.jsx';
-import { BackLog } from '../utils/BackLog';
 
 function useQuery() {
   return new URLSearchParams(useLocation().search);
 }
 
 export default function MagicLinkLanding() {
-  BackLog("MagicLinkLanding");
   const [status, setStatus] = useState('Redeeming your link...');
   const [working, setWorking] = useState(true);
 

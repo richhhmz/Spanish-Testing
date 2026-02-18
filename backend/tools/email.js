@@ -35,7 +35,7 @@ function assertSafeLinkUrl(linkUrl) {
   // Optional: restrict hostnames so links can only go to your site
   // Comment out if you truly need multiple hosts.
   const allowedHosts = new Set([
-    new URL(APP_BASE_URL).host, // e.g. progspanlrn.com or localhost:5173
+    new URL(FRONTEND_ORIGIN).host, // e.g. progspanlrn.com or localhost:5173
     'localhost:5173',
     'localhost:3000',
     '127.0.0.1:5173',

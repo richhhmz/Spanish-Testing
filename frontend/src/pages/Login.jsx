@@ -47,12 +47,12 @@ export default function Login() {
     <div>
       <div className="ml-[0.25in] mt-8 max-w-md">
         <h2 className="text-2xl font-semibold mb-4">
-          Sign in with Magic Link
+          Sign in to Progressive Spanish Learning
         </h2>
 
         <form onSubmit={requestLink} className="space-y-4">
           <div>
-            <label className="block text-sm mb-1">Email</label>
+            <label className="block text-sm mb-1">Enter your email address</label>
             <input
               type="email"
               value={email}
@@ -68,7 +68,7 @@ export default function Login() {
             disabled={loading}
             className="px-4 py-2 bg-gray-300 text-gray-800 rounded text-sm hover:bg-gray-400 focus:outline-none disabled:opacity-50"
           >
-            {loading ? 'Sending...' : 'Send Magic Link'}
+            {loading ? 'Sending...' : 'Send Email Verification Message'}
           </button>
         </form>
       </div>

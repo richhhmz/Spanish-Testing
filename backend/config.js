@@ -25,7 +25,7 @@ const connection = USE_ATLAS === 'true' ? atlasBase : localBase;
 export const profilesDBURL     = `${connection}/learners?${atlasOptions}`;
 export const spanishWordsDBURL = `${connection}/spanish?${atlasOptions}`;
 export const spanishTestsDBURL = `${connection}/learning?${atlasOptions}`;
-export const messagesDBURL     = `${connection}/app?${atlasOptions}`;
+export const appDBURL          = `${connection}/app?${atlasOptions}`;
 
 export const spanishTestingName = '_spanish_test';
 export const englishTestingName = '_english_test';
@@ -41,12 +41,10 @@ export const STRIPE_SECRET_KEY      = process.env.STRIPE_SECRET_KEY;
 export const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY;
 export const STRIPE_PRICE_ID        = process.env.STRIPE_PRICE_ID;
 
-export const FRONTEND_BASE_URL = process.env.FRONTEND_BASE_URL;
-
 export const SENDGRID_API_KEY   = process.env.SENDGRID_API_KEY;
 export const SENDGRID_FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL;
 
-export const APP_BASE_URL =
-  process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
+export const FRONTEND_ORIGIN =
+  process.env.FRONTEND_ORIGIN || 'http://localhost:8080';
 
 export const isProd = process.env.NODE_ENV === 'production';

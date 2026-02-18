@@ -1,119 +1,113 @@
+// backend/routes/MagicLinkRoute.js
 import express from 'express';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
-import MagicLink from '../models/MagicLink.js';
+import { MagicLinkSchema } from '../models/MagicLink.js';
 import { sendMagicLinkEmail } from '../tools/email.js';
 import { magicRequestLimiter, magicRedeemLimiter } from '../middleware/rateLimiters.js';
-
-const router = express.Router();
 
 function sha256(input) {
   return crypto.createHash('sha256').update(input).digest('hex');
 }
 
-// POST /magic/request  { email }
-router.post('/magic/request', magicRequestLimiter, async (req, res) => {
-  try {
-    const { email } = req.body || {};
-    const normalizedEmail = (email || '').toLowerCase().trim();
+export default function createMagicLinkRoute(appDBConnection) {
+  const router = express.Router();
 
-    // Always neutral response
-    if (!normalizedEmail || !normalizedEmail.includes('@')) {
+  // ✅ model bound to the correct DB connection
+  const MagicLink =
+    appDBConnection.models.MagicLink ||
+    appDBConnection.model('MagicLink', MagicLinkSchema);
+
+  router.post('/magic/request', magicRequestLimiter, async (req, res) => {
+    try {
+      const { email } = req.body || {};
+      const normalizedEmail = (email || '').toLowerCase().trim();
+
+      if (!normalizedEmail || !normalizedEmail.includes('@')) {
+        return res.json({ ok: true });
+      }
+
+      const rawToken = crypto.randomBytes(32).toString('hex');
+      const tokenHash = sha256(rawToken);
+
+      await MagicLink.deleteMany({
+        email: normalizedEmail,
+        purpose: 'login',
+        usedAt: null,
+      });
+
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+      await MagicLink.create({
+        email: normalizedEmail,
+        tokenHash,
+        purpose: 'login',
+        expiresAt,
+        ip: req.ip || '',
+        userAgent: req.get('user-agent') || '',
+      });
+
+      // ✅ use one env name consistently (see note below)
+      const appOrigin = process.env.FRONTEND_ORIGIN || process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
+      const linkUrl = `${appOrigin}/magic?token=${rawToken}`;
+
+      await sendMagicLinkEmail({ to: normalizedEmail, linkUrl });
+
+      return res.json({ ok: true });
+    } catch (err) {
+      console.error('magic/request error:', err);
       return res.json({ ok: true });
     }
+  });
 
-    const rawToken = crypto.randomBytes(32).toString('hex');
-    const tokenHash = sha256(rawToken);
+  router.post('/magic/redeem', magicRedeemLimiter, async (req, res) => {
+    try {
+      const { token } = req.body || {};
+      if (!token) return res.status(400).json({ error: 'Missing token' });
 
-    // Invalidate older pending links for this email (optional)
-    await MagicLink.deleteMany({
-      email: normalizedEmail,
-      purpose: 'login',
-      usedAt: null,
-    });
+      const tokenHash = sha256(token);
 
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+      const link = await MagicLink.findOne({
+        tokenHash,
+        purpose: 'login',
+        usedAt: null,
+        expiresAt: { $gt: new Date() },
+      });
 
-    await MagicLink.create({
-      email: normalizedEmail,
-      tokenHash,
-      purpose: 'login',
-      expiresAt,
-      ip: req.ip || '',
-      userAgent: req.get('user-agent') || '',
-    });
+      if (!link) return res.status(400).json({ error: 'Invalid or expired link' });
 
-    const appOrigin = process.env.APP_ORIGIN || 'http://localhost:5173';
-    const linkUrl = `${appOrigin}/magic?token=${rawToken}`;
+      link.usedAt = new Date();
+      await link.save();
 
-    await sendMagicLinkEmail({ to: normalizedEmail, linkUrl });
+      const email = link.email;
 
-    return res.json({ ok: true });
-  } catch (err) {
-    console.error('magic/request error:', err);
-    // still neutral
-    return res.json({ ok: true });
-  }
-});
+      const accessToken = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: '15m' });
+      const refreshToken = jwt.sign({ email }, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
 
-// POST /magic/redeem { token }
-router.post('/magic/redeem', magicRedeemLimiter, async (req, res) => {
-  try {
-    const { token } = req.body || {};
-    if (!token) return res.status(400).json({ error: 'Missing token' });
+      const isProd = process.env.NODE_ENV === 'production';
 
-    const tokenHash = sha256(token);
+      res.cookie('token', accessToken, {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 15 * 60 * 1000,
+      });
 
-    const link = await MagicLink.findOne({
-      tokenHash,
-      purpose: 'login',
-      usedAt: null,
-      expiresAt: { $gt: new Date() },
-    });
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
 
-    if (!link) return res.status(400).json({ error: 'Invalid or expired link' });
+      return res.json({ ok: true });
+    } catch (err) {
+      console.error('magic/redeem error:', err);
+      return res.status(500).json({ error: 'Server error' });
+    }
+  });
 
-    // One-time use
-    link.usedAt = new Date();
-    await link.save();
-
-    const email = link.email;
-
-    const accessToken = jwt.sign(
-      { email },
-      process.env.JWT_SECRET,
-      { expiresIn: '15m' }
-    );
-
-    const refreshToken = jwt.sign(
-      { email },
-      process.env.JWT_REFRESH_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    const isProd = process.env.NODE_ENV === 'production';
-
-    res.cookie('token', accessToken, {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 15 * 60 * 1000,
-    });
-
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    return res.json({ ok: true });
-  } catch (err) {
-    console.error('magic/redeem error:', err);
-    return res.status(500).json({ error: 'Server error' });
-  }
-});
-
-export default router;
+  return router;
+}

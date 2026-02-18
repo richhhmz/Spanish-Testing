@@ -6,7 +6,7 @@ import Stripe from 'stripe';
 import {
   STRIPE_SECRET_KEY,
   STRIPE_PRICE_ID,
-  FRONTEND_BASE_URL,
+  FRONTEND_ORIGIN,
 } from '../config.js';
 
 import { requireAuth } from '../middleware/auth.js';
@@ -189,8 +189,8 @@ const createBillingRouter = (profilesDBConnection) => {
               quantity: 1,
             },
           ],
-          success_url: `${FRONTEND_BASE_URL}/?billing=success`,
-          cancel_url: `${FRONTEND_BASE_URL}/?billing=cancelled`,
+          success_url: `${FRONTEND_ORIGIN}/?billing=success`,
+          cancel_url: `${FRONTEND_ORIGIN}/?billing=cancelled`,
         });
 
         console.log("before return");
@@ -232,7 +232,7 @@ const createBillingRouter = (profilesDBConnection) => {
 
         const portalSession = await stripe.billingPortal.sessions.create({
           customer: stripeCustomerId,
-          return_url: `${FRONTEND_BASE_URL}/`,
+          return_url: `${FRONTEND_ORIGIN}/`,
         });
 
         return res.json({ url: portalSession.url });

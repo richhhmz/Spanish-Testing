@@ -9,7 +9,7 @@ import { fileURLToPath } from 'url';
 
 import testsRoute from './routes/TestingRoute.js';
 import createBillingRouter from './routes/BillingRoute.js';
-import magicLinkRoute from './routes/MagicLinkRoute.js';
+import createMagicLinkRoute from './routes/MagicLinkRoute.js';
 
 import {
   PORT,
@@ -17,7 +17,7 @@ import {
   profilesDBURL,
   spanishWordsDBURL,
   spanishTestsDBURL,
-  messagesDBURL,
+  appDBURL,
 } from './config.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -63,23 +63,23 @@ app.use(
 const profilesDBConnection = mongoose.createConnection(profilesDBURL);
 const spanishWordsDBConnection = mongoose.createConnection(spanishWordsDBURL);
 const spanishTestsDBConnection = mongoose.createConnection(spanishTestsDBURL);
-const messagesDBConnection = mongoose.createConnection(messagesDBURL);
+const appDBConnection = mongoose.createConnection(appDBURL);
 
 // Optional connection logging
 for (const [name, conn] of [
   ['profilesDB', profilesDBConnection],
   ['spanishWordsDB', spanishWordsDBConnection],
   ['spanishTestsDB', spanishTestsDBConnection],
-  ['messagesDB', messagesDBConnection],
+  ['appDB', appDBConnection],
 ]) {
-  conn.on('connected', () => console.log(`[DB] ✅ Connected: ${name}`));
+  // conn.on('connected', () => console.log(`[DB] ✅ Connected: ${name}`));
   conn.on('error', (err) => console.error(`[DB] ❌ Error (${name}):`, err));
 }
 
 app.locals.profilesDB = profilesDBConnection;
 app.locals.spanishWordsDB = spanishWordsDBConnection;
 app.locals.spanishTestsDB = spanishTestsDBConnection;
-app.locals.messagesDB = messagesDBConnection;
+app.locals.messagesDB = appDBConnection;
 
 /* ───────────────────────────── Billing Router ───────────────────────────── */
 /* MUST come before express.json if using Stripe raw body */
@@ -92,7 +92,7 @@ app.use(cookieParser());
 
 /* ───────────────────────────── Magic Link Routes ───────────────────────────── */
 /* Mounted at root because /auth/login is in TestingRoute */
-app.use('/', magicLinkRoute);
+app.use('/', createMagicLinkRoute(appDBConnection));
 
 /* ───────────────────────────── Static Frontend ───────────────────────────── */
 if (folderExists) {
@@ -109,7 +109,7 @@ app.use(
     profilesDBConnection,
     spanishWordsDBConnection,
     spanishTestsDBConnection,
-    messagesDBConnection
+    appDBConnection
   )
 );
 
