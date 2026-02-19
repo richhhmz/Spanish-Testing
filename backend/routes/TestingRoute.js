@@ -411,23 +411,45 @@ const createTestsRouter = (
   router.post('/auth/refresh', async (req, res) => {
     try {
       const refreshToken = req.cookies?.refreshToken;
+
       if (!refreshToken) {
+        if (isDebug) console.warn('[refresh] No refresh token found in cookies');
         return res.status(401).json({ error: 'Missing refresh token' });
       }
 
+      // 1. Verify the refresh token using the REFRESH secret
       const payload = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
 
+      // 2. Validate that the payload contains our ID (which is the email)
+      // Even if email is the ID, the key in the JWT MUST be 'userId' to match requireAuth
+      if (!payload || !payload.userId) {
+        if (isDebug) console.error('[refresh] Token payload missing userId');
+        return res.status(401).json({ error: 'Invalid refresh token payload' });
+      }
+
+      // 3. Sign a NEW access token (short-lived)
+      // We carry over the userId and isAdmin status from the refresh token
       const accessToken = jwt.sign(
-        { userId: payload.userId, isAdmin: !!payload.isAdmin },
+        {
+          userId: payload.userId,
+          isAdmin: !!payload.isAdmin
+        },
         process.env.JWT_SECRET,
         { expiresIn: '15m' }
       );
 
-      // ✅ This will show as Set-Cookie in DevTools
+      // 4. Set the new access token in the 'token' cookie
+      // Using the accessCookieOptions defined earlier in your TestingRoute.js
       res.cookie('token', accessToken, accessCookieOptions);
+
+      if (isDebug) console.log(`[refresh] Successfully rotated access token for: ${payload.userId}`);
 
       return res.json({ ok: true });
     } catch (err) {
+      if (isDebug) console.error('[refresh] JWT Verification failed:', err.message);
+
+      // If the refresh token itself is expired or tampered with, 
+      // the user must log in again.
       return res.status(401).json({ error: 'Refresh token invalid or expired' });
     }
   });
