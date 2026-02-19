@@ -20,37 +20,30 @@ const ensureSubscriptionBlock = async (profile) => {
 };
 
 export const getProfile = async (userId, profilesDBConnection) => {
-  const profileModel = profilesDBConnection.model('Profile', ProfileSchema);
+  try {
+    // 🚨 Validate input early
+    if (!userId || typeof userId !== 'string') {
+      throw new Error('getProfile: userId is missing or invalid');
+    }
 
-  let profile = await profileModel.findOne({ userId: userId });
+    const trimmedUserId = userId.trim();
 
-  // If profile doesn't exist, create a brand-new one
-  if (profile == null) {
-    const newProfile = {
-      userId: userId.trim(),
-      userPreferredName: '',
-      isAdmin: false,
-      testsPerDay: defaultTestsPerDay,
-      lastTestDate: defaultLastTestDate,
-      firstVisitDate: getTodaysDate(),
-      lastVisitDate: getTodaysDate(),
-      lastMessagesReadDate: defaultLastMessageReadDate,
+    if (!trimmedUserId) {
+      throw new Error('getProfile: userId is empty after trimming');
+    }
 
-      // Make subscription state explicit for new users
-      subscription: {
-        status: 'none',
-      },
-    };
+    // Your existing DB lookup (adjust if needed)
+    const ProfileModel = profilesDBConnection.model('Profile');
 
-    profile = await profileModel.create(newProfile);
-    return profile;
+    const profile = await ProfileModel.findOne({
+      userId: trimmedUserId,
+    }).lean();
+
+    return profile; // may be null (caller handles that)
+  } catch (err) {
+    console.error('❌ getProfile failed:', err);
+    throw err; // let caller decide how to respond
   }
-
-  // For older profiles (created before subscription field existed),
-  // make sure we have a subscription block.
-  profile = await ensureSubscriptionBlock(profile);
-
-  return profile;
 };
 
 export const updateProfile = async (userId, profilesDBConnection, updates) => {
