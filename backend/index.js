@@ -36,21 +36,25 @@ const folderExists = fs.existsSync(frontendDistPath);
 /* ───────────────────────────── Diagnostics ───────────────────────────── */
 console.log('[BOOT] index.js loaded');
 console.log(`[Server] Environment: ${IS_DEV ? 'Development' : 'Production'}`);
-console.log(`[Server] Static path: ${frontendDistPath}`);
-console.log(`[Server] Static folder exists: ${folderExists}`);
 
-if (!folderExists) {
-  try {
-    console.error(
-      `[Server] ❌ frontend-dist missing. Current dir contains: ${fs.readdirSync(__dirname).join(', ')}`
-    );
-  } catch (err) {
-    console.error('[Server] ❌ Could not inspect directory:', err);
-  }
+/* ───────────────────────────── DB Connections ───────────────────────────── */
+const profilesDBConnection = mongoose.createConnection(profilesDBURL);
+const spanishWordsDBConnection = mongoose.createConnection(spanishWordsDBURL);
+const spanishTestsDBConnection = mongoose.createConnection(spanishTestsDBURL);
+const appDBConnection = mongoose.createConnection(appDBURL);
+
+// Error logging for DB connections
+for (const [name, conn] of [
+  ['profilesDB', profilesDBConnection],
+  ['spanishWordsDB', spanishWordsDBConnection],
+  ['spanishTestsDB', spanishTestsDBConnection],
+  ['appDB', appDBConnection],
+]) {
+  conn.on('error', (err) => console.error(`[DB] ❌ Error (${name}):`, err));
 }
 
-/* ───────────────────────────── CORS ───────────────────────────── */
-// If frontend + backend share same origin in production, this is still safe.
+/* ───────────────────────────── 1. GLOBAL MIDDLEWARE ───────────────────────────── */
+// CORS and CookieParser MUST be first
 const PROD_ORIGIN = process.env.FRONTEND_ORIGIN || 'https://progspanlrn.com';
 const devOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
 
@@ -60,50 +64,25 @@ app.use(
     credentials: true,
   })
 );
-/* ───────────────────────────── DB Connections ───────────────────────────── */
-const profilesDBConnection = mongoose.createConnection(profilesDBURL);
-const spanishWordsDBConnection = mongoose.createConnection(spanishWordsDBURL);
-const spanishTestsDBConnection = mongoose.createConnection(spanishTestsDBURL);
-const appDBConnection = mongoose.createConnection(appDBURL);
 
-// Optional connection logging
-for (const [name, conn] of [
-  ['profilesDB', profilesDBConnection],
-  ['spanishWordsDB', spanishWordsDBConnection],
-  ['spanishTestsDB', spanishTestsDBConnection],
-  ['appDB', appDBConnection],
-]) {
-  // conn.on('connected', () => console.log(`[DB] ✅ Connected: ${name}`));
-  conn.on('error', (err) => console.error(`[DB] ❌ Error (${name}):`, err));
-}
+// This ensures req.cookies is populated BEFORE any auth checks
+app.use(cookieParser());
 
-app.locals.profilesDB = profilesDBConnection;
-app.locals.spanishWordsDB = spanishWordsDBConnection;
-app.locals.spanishTestsDB = spanishTestsDBConnection;
-app.locals.messagesDB = appDBConnection;
-
-/* ───────────────────────────── Billing Router ───────────────────────────── */
-/* MUST come before express.json if using Stripe raw body */
+/* ───────────────────────────── 2. BILLING ROUTER ───────────────────────────── */
+/* Mounted BEFORE express.json() because BillingRoute handles its own 
+   raw-body parsing for Stripe webhooks.
+*/
 const billingRouter = createBillingRouter(profilesDBConnection);
 app.use('/api/billing', billingRouter);
 
-/* ───────────────────────────── Parsers ───────────────────────────── */
+/* ───────────────────────────── 3. BODY PARSERS ───────────────────────────── */
 app.use(express.json());
-app.use(cookieParser());
 
-/* ───────────────────────────── Magic Link Routes ───────────────────────────── */
-/* Mounted at root because /auth/login is in TestingRoute */
+/* ───────────────────────────── 4. MAIN APPLICATION ROUTES ───────────────────────────── */
+// Magic link routes (handles /magic/request and /magic/redeem)
 app.use('/', createMagicLinkRoute(appDBConnection, profilesDBConnection));
 
-/* ───────────────────────────── Static Frontend ───────────────────────────── */
-if (folderExists) {
-  app.use(express.static(frontendDistPath));
-}
-
-/* ───────────────────────────── Health Check ───────────────────────────── */
-app.get('/healthz', (req, res) => res.status(200).send('ok'));
-
-/* ───────────────────────────── Main Routes ───────────────────────────── */
+// Main testing routes
 app.use(
   '/',
   testsRoute(
@@ -114,7 +93,14 @@ app.use(
   )
 );
 
-/* ───────────────────────────── SPA Fallback ───────────────────────────── */
+/* ───────────────────────────── 5. STATIC ASSETS & SPA ───────────────────────────── */
+if (folderExists) {
+  app.use(express.static(frontendDistPath));
+}
+
+// Health check for Cloud Run
+app.get('/healthz', (req, res) => res.status(200).send('ok'));
+
 if (folderExists) {
   app.get('*', (req, res) => {
     if (req.path.includes('.')) {
@@ -125,22 +111,15 @@ if (folderExists) {
     if (fs.existsSync(indexPath)) {
       return res.sendFile(indexPath);
     }
-
-    return res.status(404).send('index.html missing from dist folder');
+    return res.status(404).send('index.html missing');
   });
 } else {
   app.get('/', (req, res) => {
-    res
-      .status(200)
-      .send(
-        'Backend is running, but Frontend was not found in the container build.'
-      );
+    res.status(200).send('Backend running. Frontend missing in container.');
   });
 }
 
-/* ───────────────────────────── Listen ───────────────────────────── */
-console.log('[BOOT] about to listen on PORT=', process.env.PORT);
-
-app.listen(PORT, () => {
+/* ───────────────────────────── 6. LISTEN ───────────────────────────── */
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server listening on port ${PORT}`);
 });

@@ -78,7 +78,7 @@ export default function createMagicLinkRoute(appDBConnection, profilesDBConnecti
     try {
       console.log("/magic/redeem");
       const { token } = req.body || {};
-      if (!token) return res.status(400).json({ error: 'Missing token' });
+      if (!token) return res.status(400).json({ error: '[/magic/redeem] Missing token' });
 
       const tokenHash = sha256(token);
 
