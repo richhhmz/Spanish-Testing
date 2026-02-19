@@ -93,7 +93,7 @@ app.use(cookieParser());
 
 /* ───────────────────────────── Magic Link Routes ───────────────────────────── */
 /* Mounted at root because /auth/login is in TestingRoute */
-app.use('/', createMagicLinkRoute(appDBConnection));
+app.use('/', createMagicLinkRoute(appDBConnection, profilesDBConnection));
 
 /* ───────────────────────────── Static Frontend ───────────────────────────── */
 if (folderExists) {
