@@ -388,15 +388,22 @@ const createTestsRouter = (
         ? impersonation.targetUserId
         : realUserId;
 
-      res.json({
+      return res.json({
         realUserId,
         effectiveUserId,
         isAdmin: req.user.isAdmin,
         impersonating: !!impersonation.active,
       });
     } catch (err) {
+      // Log on server AND send back details so we can see what actually broke
       console.error('effective-user error:', err);
-      res.status(500).json({ error: 'Failed to resolve effective user' });
+
+      return res.status(500).json({
+        error: 'Failed to resolve effective user',
+        message: err?.message || 'unknown error',
+        // stack is handy while debugging; remove later if you like
+        stack: err?.stack,
+      });
     }
   });
 
