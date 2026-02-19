@@ -375,21 +375,27 @@ const createTestsRouter = (
   router.get('/auth/effective-user', requireAuth, async (req, res) => {
     try {
       const realUserId = req.user.userId;
+
       const profile = await getProfile(realUserId, profilesDBConnection);
 
-      let effectiveUserId = realUserId;
-      if (profile?.impersonation?.active) {
-        effectiveUserId = profile.impersonation.targetUserId;
+      if (!profile) {
+        // No profile found for this authenticated user
+        return res.status(404).json({ error: 'Profile not found' });
       }
+
+      const impersonation = profile.impersonation || {};
+      const effectiveUserId = impersonation.active
+        ? impersonation.targetUserId
+        : realUserId;
 
       res.json({
         realUserId,
         effectiveUserId,
         isAdmin: req.user.isAdmin,
-        impersonating: !!profile?.impersonation?.active
+        impersonating: !!impersonation.active,
       });
     } catch (err) {
-      console.error(err);
+      console.error('effective-user error:', err);
       res.status(500).json({ error: 'Failed to resolve effective user' });
     }
   });
