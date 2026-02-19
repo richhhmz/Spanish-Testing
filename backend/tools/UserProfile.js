@@ -21,28 +21,27 @@ const ensureSubscriptionBlock = async (profile) => {
 
 export const getProfile = async (userId, profilesDBConnection) => {
   try {
-    // 🚨 Validate input early
     if (!userId || typeof userId !== 'string') {
       throw new Error('getProfile: userId is missing or invalid');
     }
 
     const trimmedUserId = userId.trim();
 
-    if (!trimmedUserId) {
-      throw new Error('getProfile: userId is empty after trimming');
-    }
-
-    // Your existing DB lookup (adjust if needed)
-    const ProfileModel = profilesDBConnection.model('Profile');
+    // ✅ SAFE REGISTRATION:
+    // This looks for the model on the connection first. 
+    // If it's not found, it registers it using your ProfileSchema.
+    const ProfileModel =
+      profilesDBConnection.models.Profile ||
+      profilesDBConnection.model('Profile', ProfileSchema);
 
     const profile = await ProfileModel.findOne({
       userId: trimmedUserId,
     }).lean();
 
-    return profile; // may be null (caller handles that)
+    return profile;
   } catch (err) {
     console.error('❌ getProfile failed:', err);
-    throw err; // let caller decide how to respond
+    throw err;
   }
 };
 
