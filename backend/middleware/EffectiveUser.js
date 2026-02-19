@@ -1,25 +1,24 @@
+// backend/middleware/EffectiveUser.js
 import { getProfile } from '../tools/UserProfile.js';
 
-export default async function effectiveUserMiddleware(req, res, next) {
+const effectiveUserMiddleware = (profilesDBConnection) => async (req, res, next) => {
   try {
-    if (!req.user?.userId) {
-      return next(); // unauthenticated route
+    const realUserId = req.user?.userId;
+    if (!realUserId) {
+      return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const profilesDB = req.app.locals.profilesDB;
-    const realUserId = req.user.userId;
+    // Pass the connection to getProfile
+    const profile = await getProfile(realUserId, profilesDBConnection);
 
-    const profile = await getProfile(realUserId, profilesDB);
-
-    req.realUserId = realUserId;
-    req.effectiveUserId =
-      profile.impersonation?.active
-        ? profile.impersonation.targetUserId
-        : realUserId;
+    const impersonation = profile?.impersonation || {};
+    req.effectiveUserId = impersonation.active ? impersonation.targetUserId : realUserId;
 
     next();
   } catch (err) {
     console.error('❌ effectiveUserMiddleware failed:', err);
-    res.status(500).json({ error: 'User resolution failed' });
+    res.status(500).json({ error: 'Failed to resolve effective user' });
   }
-}
+};
+
+export default effectiveUserMiddleware;
