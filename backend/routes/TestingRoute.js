@@ -1,3 +1,4 @@
+// backend/routes/TestingRoute.js
 import express from 'express';
 import {
   getProfile,
@@ -30,14 +31,34 @@ const createTestsRouter = (
 ) => {
   const router = express.Router();
 
-  /* ───────────────────────── Helpers ───────────────────────── */
+  /* ───────────────────────── Auth/Cookie helpers ───────────────────────── */
 
-  const requireUserId = (req, res) => {
+  const isProd = process.env.NODE_ENV === 'production';
+
+  // Access token cookie (short-lived JWT; no maxAge needed)
+  const accessCookieOptions = {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: 'lax',
+    path: '/',
+  };
+
+  // Refresh token cookie (long-lived)
+  const refreshCookieOptions = {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  };
+
+  const requireRealUserId = (req, res) => {
+    // Always use the authenticated user (not effective user) for admin actions
     if (!req.user?.userId) {
       res.status(401).json({ error: 'Unauthorized' });
       return null;
     }
-    return req.effectiveUserId || req.user.userId;
+    return req.user.userId;
   };
 
   // Simple admin guard for admin-only routes
@@ -48,28 +69,30 @@ const createTestsRouter = (
     next();
   };
 
-  /* ───────────────────────── Spanish routes ───────────────────────── */
+  /* ───────────────────────── Utilities / diagnostics ───────────────────────── */
 
   router.get('/magic/test-email', async (req, res) => {
     try {
-      console.log('[test-email] hit');
+      if (isDebug) console.log('[test-email] hit');
 
       const hasKey = !!process.env.SENDGRID_API_KEY;
       const from = process.env.EMAIL_FROM;
       const origin = process.env.FRONTEND_ORIGIN;
 
-      console.log('[test-email] env', {
-        hasSendgridKey: hasKey,
-        emailFrom: from,
-        appOrigin: origin,
-      });
+      if (isDebug) {
+        console.log('[test-email] env', {
+          hasSendgridKey: hasKey,
+          emailFrom: from,
+          appOrigin: origin,
+        });
+      }
 
       await sendMagicLinkEmail({
         to: 'richhhmz@gmail.com',
         linkUrl: `${origin}/magic?token=test`,
       });
 
-      console.log('[test-email] sent ok');
+      if (isDebug) console.log('[test-email] sent ok');
       res.json({ ok: true });
     } catch (err) {
       console.error('[test-email] failed', err?.response?.body || err);
@@ -81,6 +104,8 @@ const createTestsRouter = (
       });
     }
   });
+
+  /* ───────────────────────── Spanish routes ───────────────────────── */
 
   router.get('/api/spanish/allSpanishTests', requireAuth, effectiveUserMiddleware, async (req, res) => {
     try {
@@ -124,51 +149,36 @@ const createTestsRouter = (
 
   router.post('/api/addMessage', requireAuth, async (req, res) => {
     try {
-      const savedMessage = await addMessage(
-        appDBConnection,
-        req.body
-      );
-
-      res.status(201).json({
-        data: savedMessage,
-      });
+      const savedMessage = await addMessage(appDBConnection, req.body);
+      res.status(201).json({ data: savedMessage });
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: err.message });
     }
   });
+
   router.post('/api/deleteMessage', requireAuth, async (req, res) => {
     try {
       const { messageId } = req.body;
 
       if (!messageId) {
-        return res.status(400).json({
-          message: 'messageId is required',
-        });
+        return res.status(400).json({ message: 'messageId is required' });
       }
 
-      const deletedMessage = await deleteMessage(
-        appDBConnection,
-        messageId
-      );
+      const deletedMessage = await deleteMessage(appDBConnection, messageId);
 
       if (!deletedMessage) {
-        return res.status(404).json({
-          message: 'Message not found',
-        });
+        return res.status(404).json({ message: 'Message not found' });
       }
 
-      res.status(200).json({
-        data: deletedMessage,
-      });
+      res.status(200).json({ data: deletedMessage });
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: err.message });
     }
   });
 
-  router.get('/api/spanish/getTest/:word', requireAuth, effectiveUserMiddleware,
-    async (req, res) => {
+  router.get('/api/spanish/getTest/:word', requireAuth, effectiveUserMiddleware, async (req, res) => {
     try {
       const userId = req.effectiveUserId;
       if (!userId) return;
@@ -211,83 +221,70 @@ const createTestsRouter = (
     }
   });
 
-  router.put('/api/spanish/updateWord/:word', requireAuth, effectiveUserMiddleware,
-    async (req, res) => {
-      try {
-        const userId = req.effectiveUserId;
-        if (!userId) return;
+  router.put('/api/spanish/updateWord/:word', requireAuth, effectiveUserMiddleware, async (req, res) => {
+    try {
+      // effective user not needed for updateWord, but leaving your middleware chain unchanged
+      const { word } = req.params;
 
-        const { word } = req.params;
+      const result = await updateWord(word, spanishWordsDBConnection, req.body);
+      res.status(200).json({ data: result });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: err.message });
+    }
+  });
 
-        const test = await updateWord(
-          word,
-          spanishWordsDBConnection,
-          req.body
-        );
+  router.get('/api/spanish/todaysSpanishTests', requireAuth, effectiveUserMiddleware, async (req, res) => {
+    try {
+      const userId = req.effectiveUserId;
+      if (!userId) return;
 
-        res.status(200).json({ data: test });
-      } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: err.message });
-      }
-    });
+      const tests = await getTodaysSpanishTests(
+        userId,
+        profilesDBConnection,
+        spanishWordsDBConnection,
+        spanishTestsDBConnection
+      );
 
-  router.get('/api/spanish/todaysSpanishTests', requireAuth, effectiveUserMiddleware,
-    async (req, res) => {
-      try {
-        const userId = req.effectiveUserId;
-        if (!userId) return;
+      res.status(200).json({ data: tests });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: err.message });
+    }
+  });
 
-        const tests = await getTodaysSpanishTests(
-          userId,
-          profilesDBConnection,
-          spanishWordsDBConnection,
-          spanishTestsDBConnection
-        );
-
-        res.status(200).json({ data: tests });
-      } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: err.message });
-      }
-    });
-
-  router.get('/api/spanish/getProfile', requireAuth, effectiveUserMiddleware,
-    async (req, res) => {
+  router.get('/api/spanish/getProfile', requireAuth, effectiveUserMiddleware, async (req, res) => {
+    try {
       const userId = req.effectiveUserId;
       const profile = await getProfile(userId, profilesDBConnection);
       res.json({ data: profile });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to load profile' });
     }
-  );
+  });
 
-  router.put('/api/spanish/updateProfile', requireAuth, effectiveUserMiddleware,
-    async (req, res) => {
-      try {
-        const userId = req.effectiveUserId;
+  router.put('/api/spanish/updateProfile', requireAuth, effectiveUserMiddleware, async (req, res) => {
+    try {
+      const userId = req.effectiveUserId;
 
-        if (!userId) {
-          return res.status(401).json({ error: 'Unauthorized' });
-        }
-
-        const result = await updateProfile(
-          userId,
-          profilesDBConnection,
-          req.body
-        );
-
-        res.status(result.status).json(result);
-      } catch (err) {
-        console.error('❌ updateProfile failed:', err);
-        res.status(500).json({ error: 'Profile update failed' });
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
       }
+
+      const result = await updateProfile(userId, profilesDBConnection, req.body);
+      res.status(result.status).json(result);
+    } catch (err) {
+      console.error('❌ updateProfile failed:', err);
+      res.status(500).json({ error: 'Profile update failed' });
     }
-  );
+  });
 
   /* ───────────────────────── Admin routes ───────────────────────── */
 
   router.post('/admin/impersonate', requireAuth, async (req, res) => {
     try {
-      const adminUserId = requireUserId(req, res);
+      const adminUserId = requireRealUserId(req, res);
       if (!adminUserId) return;
 
       const { targetUserId } = req.body;
@@ -295,12 +292,9 @@ const createTestsRouter = (
         return res.status(400).json({ error: 'targetUserId required' });
       }
 
-      const adminProfile = await getProfile(
-        adminUserId,
-        profilesDBConnection
-      );
+      const adminProfile = await getProfile(adminUserId, profilesDBConnection);
 
-      if (!adminProfile.isAdmin) {
+      if (!adminProfile?.isAdmin) {
         return res.status(403).json({ error: 'Not authorized' });
       }
 
@@ -323,40 +317,40 @@ const createTestsRouter = (
   });
 
   router.post('/admin/reset-impersonation', requireAuth, async (req, res) => {
-    const { userId, isAdmin } = req.user;
+    try {
+      const { userId, isAdmin } = req.user;
 
-    if (!isAdmin) {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
-
-    const profile = await getProfile(userId, profilesDBConnection);
-
-    if (!profile.impersonation?.active) {
-      return res.status(400).json({ error: 'Not impersonating' });
-    }
-
-    await updateProfile(userId, profilesDBConnection, {
-      impersonation: {
-        active: false,
-        targetUserId: null,
-        startedAt: null
+      if (!isAdmin) {
+        return res.status(403).json({ error: 'Forbidden' });
       }
-    });
 
-    res.json({ message: 'Impersonation reset' });
+      const profile = await getProfile(userId, profilesDBConnection);
+
+      if (!profile?.impersonation?.active) {
+        return res.status(400).json({ error: 'Not impersonating' });
+      }
+
+      await updateProfile(userId, profilesDBConnection, {
+        impersonation: {
+          active: false,
+          targetUserId: null,
+          startedAt: null
+        }
+      });
+
+      res.json({ message: 'Impersonation reset' });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to reset impersonation' });
+    }
   });
 
-  // Admin: set subscription info for a user
   router.post('/admin/set-subscription', requireAuth, requireAdmin, async (req, res) => {
     try {
       const { targetUserId, status, plan } = req.body;
 
-      if (!targetUserId) {
-        return res.status(400).json({ error: 'targetUserId is required' });
-      }
-      if (!status) {
-        return res.status(400).json({ error: 'status is required' });
-      }
+      if (!targetUserId) return res.status(400).json({ error: 'targetUserId is required' });
+      if (!status) return res.status(400).json({ error: 'status is required' });
 
       const subscriptionUpdates = { status };
       if (plan) subscriptionUpdates.plan = plan;
@@ -367,9 +361,7 @@ const createTestsRouter = (
         subscriptionUpdates
       );
 
-      if (!updatedProfile) {
-        return res.status(404).json({ error: 'User not found' });
-      }
+      if (!updatedProfile) return res.status(404).json({ error: 'User not found' });
 
       res.json({ ok: true, subscription: updatedProfile.subscription });
     } catch (err) {
@@ -378,59 +370,56 @@ const createTestsRouter = (
     }
   });
 
+  /* ───────────────────────── Auth routes ───────────────────────── */
+
   router.get('/auth/effective-user', requireAuth, async (req, res) => {
     try {
       const realUserId = req.user.userId;
-
       const profile = await getProfile(realUserId, profilesDBConnection);
 
       let effectiveUserId = realUserId;
-      if (profile.impersonation?.active) {
+      if (profile?.impersonation?.active) {
         effectiveUserId = profile.impersonation.targetUserId;
       }
 
-      const response = {
+      res.json({
         realUserId,
         effectiveUserId,
         isAdmin: req.user.isAdmin,
-        impersonating: !!profile.impersonation?.active
-      };
-
-      res.json(response);
+        impersonating: !!profile?.impersonation?.active
+      });
     } catch (err) {
+      console.error(err);
       res.status(500).json({ error: 'Failed to resolve effective user' });
     }
   });
 
+  // ✅ Refresh: verify refresh token, set NEW access token cookie
   router.post('/auth/refresh', async (req, res) => {
     try {
       const refreshToken = req.cookies?.refreshToken;
-
       if (!refreshToken) {
-        return res.status(401).json({ error: 'No refresh token' });
+        return res.status(401).json({ error: 'Missing refresh token' });
       }
-      // Verify refresh token
-      const payload = jwt.verify(
-        refreshToken,
-        process.env.JWT_REFRESH_SECRET
-      );
 
-      // Issue new access token
-      const newAccessToken = jwt.sign(
-        {
-          userId: payload.userId,
-          isAdmin: payload.isAdmin,
-        },
+      const payload = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+
+      const accessToken = jwt.sign(
+        { userId: payload.userId, isAdmin: !!payload.isAdmin },
         process.env.JWT_SECRET,
         { expiresIn: '15m' }
       );
 
-      return res.json({ accessToken: newAccessToken });
+      // ✅ This will show as Set-Cookie in DevTools
+      res.cookie('token', accessToken, accessCookieOptions);
+
+      return res.json({ ok: true });
     } catch (err) {
-      return res.status(401).json({ error: 'Refresh token expired or invalid' });
+      return res.status(401).json({ error: 'Refresh token invalid or expired' });
     }
   });
 
+  // ✅ Login: set BOTH cookies so cookie-auth works
   router.post('/auth/login', async (req, res) => {
     try {
       const { userId } = req.body;
@@ -440,21 +429,19 @@ const createTestsRouter = (
       }
 
       const profile = await getProfile(userId, profilesDBConnection);
-
       if (!profile) {
         return res.status(401).json({ error: 'Invalid userId' });
       }
 
-      // ✅ Create a one-time login-attempt token (10 minutes)
+      // One-time login-attempt token (10 minutes)
       const loginAttemptToken = crypto.randomBytes(32).toString('hex');
 
       await LoginAttempt.create({
         userId,
         token: loginAttemptToken,
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
       });
 
-      // ✅ JWT access/refresh tokens
       const accessToken = jwt.sign(
         { userId, isAdmin: !!profile.isAdmin },
         process.env.JWT_SECRET,
@@ -467,17 +454,11 @@ const createTestsRouter = (
         { expiresIn: '7d' }
       );
 
-      // 🍪 Store refresh token as httpOnly cookie
-      res.cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        path: '/',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
+      // ✅ Cookie auth (both)
+      res.cookie('token', accessToken, accessCookieOptions);
+      res.cookie('refreshToken', refreshToken, refreshCookieOptions);
 
-      // ⬅️ Send access token (+ loginAttemptToken if you actually use it)
-      res.json({ token: accessToken, loginAttemptToken });
+      return res.json({ ok: true, loginAttemptToken });
     } catch (err) {
       console.error('Login error:', err);
       res.status(500).json({ error: 'Server error during login' });
@@ -485,36 +466,57 @@ const createTestsRouter = (
   });
 
   router.get('/auth/email-confirm/:token', async (req, res) => {
-    const attempt = await LoginAttempt.findOne({
-      token: req.params.token,
-      status: 'pending',
-      expiresAt: { $gt: new Date() }
-    });
+    try {
+      const attempt = await LoginAttempt.findOne({
+        token: req.params.token,
+        status: 'pending',
+        expiresAt: { $gt: new Date() }
+      });
 
-    if (!attempt) {
-      return res.redirect('/login?error=expired');
+      if (!attempt) {
+        return res.redirect('/login?error=expired');
+      }
+
+      attempt.status = 'approved';
+      await attempt.save();
+
+      const profile = await getProfile(attempt.userId, profilesDBConnection);
+
+      const accessToken = jwt.sign(
+        { userId: attempt.userId, isAdmin: !!profile?.isAdmin },
+        process.env.JWT_SECRET,
+        { expiresIn: '15m' }
+      );
+
+      const refreshToken = jwt.sign(
+        { userId: attempt.userId, isAdmin: !!profile?.isAdmin },
+        process.env.JWT_REFRESH_SECRET,
+        { expiresIn: '7d' }
+      );
+
+      res.cookie('token', accessToken, accessCookieOptions);
+      res.cookie('refreshToken', refreshToken, refreshCookieOptions);
+
+      return res.redirect('/');
+    } catch (err) {
+      console.error('email-confirm failed:', err);
+      return res.redirect('/login?error=server');
     }
-
-    attempt.status = 'approved';
-    await attempt.save();
-
-    const jwtToken = generateJWT(attempt.userId);
-
-    res.cookie('token', jwtToken, { httpOnly: true });
-    res.redirect('/');
   });
 
   router.get('/auth/email-cancel/:token', async (req, res) => {
-    const attempt = await LoginAttempt.findOne({ token: req.params.token });
-
-    if (attempt) {
-      attempt.status = 'cancelled';
-      await attempt.save();
+    try {
+      const attempt = await LoginAttempt.findOne({ token: req.params.token });
+      if (attempt) {
+        attempt.status = 'cancelled';
+        await attempt.save();
+      }
+      res.redirect('/login?cancelled=true');
+    } catch (err) {
+      console.error('email-cancel failed:', err);
+      res.redirect('/login?cancelled=true');
     }
-
-    res.redirect('/login?cancelled=true');
   });
-
 
   /* ───────────────────────── Utilities ───────────────────────── */
 
@@ -531,17 +533,10 @@ const createTestsRouter = (
 
   router.post('/backlog', requireAuth, (req, res) => {
     const { message, context } = req.body;
-
     const timestamp = new Date().toISOString();
-    console.log(
-      `[BackLog ${timestamp}]`,
-      context ? `[${context}]` : '',
-      message
-    );
-
+    console.log(`[BackLog ${timestamp}]`, context ? `[${context}]` : '', message);
     res.status(200).json({ ok: true });
   });
-
 
   return router;
 };

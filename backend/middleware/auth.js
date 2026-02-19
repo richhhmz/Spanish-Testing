@@ -1,25 +1,21 @@
 import jwt from 'jsonwebtoken';
-import { isDebug } from '../config.js';
 
 export const requireAuth = (req, res, next) => {
-
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Missing token' });
-  }
-
-  const token = authHeader.split(' ')[1];
-
   try {
+    // Cookie-based access token
+    const token = req.cookies?.token;
+    if (!token) return res.status(401).json({ error: 'Missing token' });
+
+    // ✅ Must match what /auth/login and /auth/refresh sign with
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    next();
+
+    req.user = {
+      userId: decoded.userId,
+      isAdmin: !!decoded.isAdmin,
+    };
+
+    return next();
   } catch (err) {
-    // IMPORTANT: return immediately, no more verify calls
-    return res.status(401).json({
-      error: err.name === 'Error'
-        ? 'Token expired'
-        : 'Invalid token'
-    });
+    return res.status(401).json({ error: 'Invalid or expired token' });
   }
 };
