@@ -1,15 +1,10 @@
+// backend/tools/UserProfile.js
 import { ProfileSchema } from '../models/ProfileModel.js';
 import { getTodaysDate } from './Util.js';
-import {
-  defaultLastTestDate,
-  defaultLastMessageReadDate,
-  defaultTestsPerDay,
-} from '../config.js';
 
 /**
  * Internal helper: ensure a profile document always has a
- * `subscription` subdocument, even for records created before
- * we added that field to the schema.
+ * `subscription` subdocument.
  */
 const ensureSubscriptionBlock = async (profile) => {
   if (!profile.subscription) {
@@ -19,6 +14,13 @@ const ensureSubscriptionBlock = async (profile) => {
   return profile;
 };
 
+/**
+ * Helper to safely get the Profile model from a specific connection
+ */
+const getSafeProfileModel = (connection) => {
+  return connection.models.Profile || connection.model('Profile', ProfileSchema);
+};
+
 export const getProfile = async (userId, profilesDBConnection) => {
   try {
     if (!userId || typeof userId !== 'string') {
@@ -26,13 +28,7 @@ export const getProfile = async (userId, profilesDBConnection) => {
     }
 
     const trimmedUserId = userId.trim();
-
-    // ✅ SAFE REGISTRATION:
-    // This looks for the model on the connection first. 
-    // If it's not found, it registers it using your ProfileSchema.
-    const ProfileModel =
-      profilesDBConnection.models.Profile ||
-      profilesDBConnection.model('Profile', ProfileSchema);
+    const ProfileModel = getSafeProfileModel(profilesDBConnection);
 
     const profile = await ProfileModel.findOne({
       userId: trimmedUserId,
@@ -46,9 +42,9 @@ export const getProfile = async (userId, profilesDBConnection) => {
 };
 
 export const updateProfile = async (userId, profilesDBConnection, updates) => {
-  const profileModel = profilesDBConnection.model('Profile', ProfileSchema);
+  const profileModel = getSafeProfileModel(profilesDBConnection);
 
-  // 🔥 Strip immutable fields
+  // Strip immutable fields
   const { _id, __v, userId: ignoredUserId, ...safeUpdates } = updates;
 
   try {
@@ -65,49 +61,28 @@ export const updateProfile = async (userId, profilesDBConnection, updates) => {
   }
 };
 
-export const updateProfileLastTestDate = async (
-  userId,
-  profilesDBConnection
-) => {
-  const Profile = profilesDBConnection.model('Profile', ProfileSchema);
-  const profile = await Profile.findOne({ userId });
-  profile.lastTestDate = getTodaysDate();
-  await profile.save();
+export const updateProfileLastTestDate = async (userId, profilesDBConnection) => {
+  const ProfileModel = getSafeProfileModel(profilesDBConnection);
+  const profile = await ProfileModel.findOne({ userId });
+  if (profile) {
+    profile.lastTestDate = getTodaysDate();
+    await profile.save();
+  }
 };
 
 export const profileCount = async (profilesDBConnection) => {
-  const profileModel = profilesDBConnection.model('Profile', ProfileSchema);
-  const count = await profileModel.countDocuments({});
-  return count;
+  const profileModel = getSafeProfileModel(profilesDBConnection);
+  return await profileModel.countDocuments({});
 };
 
-/**
- * Set subscription fields for a user.
- *
- * This is useful later for:
- *  - Stripe webhooks (checkout.session.completed, etc.)
- *  - Admin tools to manually mark someone as active/canceled
- *
- * Pass only the fields you want to change in `subscriptionUpdates`.
- * Example:
- *  await setSubscriptionInfo(userId, conn, {
- *    status: 'active',
- *    plan: 'monthly',
- *    stripeCustomerId: 'cus_123',
- *    stripeSubscriptionId: 'sub_456',
- *    currentPeriodEnd: new Date(....),
- *  });
- */
 export const setSubscriptionInfo = async (
   userId,
   profilesDBConnection,
   subscriptionUpdates
 ) => {
-  const Profile = profilesDBConnection.model('Profile', ProfileSchema);
+  const ProfileModel = getSafeProfileModel(profilesDBConnection);
 
-  // Build a $set object only with defined fields
   const setDoc = {};
-
   if (subscriptionUpdates.status !== undefined) {
     setDoc['subscription.status'] = subscriptionUpdates.status;
   }
@@ -115,23 +90,18 @@ export const setSubscriptionInfo = async (
     setDoc['subscription.plan'] = subscriptionUpdates.plan;
   }
   if (subscriptionUpdates.stripeCustomerId !== undefined) {
-    setDoc['subscription.stripeCustomerId'] =
-      subscriptionUpdates.stripeCustomerId;
+    setDoc['subscription.stripeCustomerId'] = subscriptionUpdates.stripeCustomerId;
   }
   if (subscriptionUpdates.stripeSubscriptionId !== undefined) {
-    setDoc['subscription.stripeSubscriptionId'] =
-      subscriptionUpdates.stripeSubscriptionId;
+    setDoc['subscription.stripeSubscriptionId'] = subscriptionUpdates.stripeSubscriptionId;
   }
   if (subscriptionUpdates.currentPeriodEnd !== undefined) {
-    setDoc['subscription.currentPeriodEnd'] =
-      subscriptionUpdates.currentPeriodEnd;
+    setDoc['subscription.currentPeriodEnd'] = subscriptionUpdates.currentPeriodEnd;
   }
 
-  // Always bump lastEventAt when we explicitly touch subscription info
-  setDoc['subscription.lastEventAt'] =
-    subscriptionUpdates.lastEventAt || new Date();
+  setDoc['subscription.lastEventAt'] = subscriptionUpdates.lastEventAt || new Date();
 
-  const updatedProfile = await Profile.findOneAndUpdate(
+  const updatedProfile = await ProfileModel.findOneAndUpdate(
     { userId },
     { $set: setDoc },
     { new: true }
