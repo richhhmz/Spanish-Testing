@@ -11,6 +11,9 @@ import testsRoute from './routes/TestingRoute.js';
 import createBillingRouter from './routes/BillingRoute.js';
 import createMagicLinkRoute from './routes/MagicLinkRoute.js';
 
+// Import the ProfileSchema to register it early
+import { ProfileSchema } from './models/ProfileModel.js'; 
+
 import {
   PORT,
   IS_DEV,
@@ -24,102 +27,58 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-
-/* ───────────────────────────── Proxy / Cloud Run ───────────────────────────── */
-// Required so secure cookies + req.ip work correctly behind Cloud Run
 app.set('trust proxy', 1);
 
-/* ───────────────────────────── Static Frontend Path ───────────────────────────── */
-const frontendDistPath = path.join(__dirname, 'frontend-dist');
-const folderExists = fs.existsSync(frontendDistPath);
-
-/* ───────────────────────────── Diagnostics ───────────────────────────── */
-console.log('[BOOT] index.js loaded');
-console.log(`[Server] Environment: ${IS_DEV ? 'Development' : 'Production'}`);
-
-/* ───────────────────────────── DB Connections ───────────────────────────── */
+/* ───────────────────────────── 1. DB Connections & Schema Registration ───────────────────────────── */
 const profilesDBConnection = mongoose.createConnection(profilesDBURL);
 const spanishWordsDBConnection = mongoose.createConnection(spanishWordsDBURL);
 const spanishTestsDBConnection = mongoose.createConnection(spanishTestsDBURL);
 const appDBConnection = mongoose.createConnection(appDBURL);
 
-// Error logging for DB connections
-for (const [name, conn] of [
-  ['profilesDB', profilesDBConnection],
-  ['spanishWordsDB', spanishWordsDBConnection],
-  ['spanishTestsDB', spanishTestsDBConnection],
-  ['appDB', appDBConnection],
-]) {
-  conn.on('error', (err) => console.error(`[DB] ❌ Error (${name}):`, err));
-}
+// ✅ CRITICAL: Register the "Profile" model on the connection immediately
+// This prevents the MissingSchemaError in UserProfile.js and BillingRoute.js
+profilesDBConnection.model('Profile', ProfileSchema);
 
-/* ───────────────────────────── 1. GLOBAL MIDDLEWARE ───────────────────────────── */
-// CORS and CookieParser MUST be first
+/* ───────────────────────────── 2. GLOBAL MIDDLEWARE ───────────────────────────── */
 const PROD_ORIGIN = process.env.FRONTEND_ORIGIN || 'https://progspanlrn.com';
 const devOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
 
-app.use(
-  cors({
-    origin: IS_DEV ? devOrigins : PROD_ORIGIN,
-    credentials: true,
-  })
-);
+app.use(cors({
+  origin: IS_DEV ? devOrigins : PROD_ORIGIN,
+  credentials: true,
+}));
 
-// This ensures req.cookies is populated BEFORE any auth checks
+// Cookies must be parsed before routers to support requireAuth
 app.use(cookieParser());
 
-/* ───────────────────────────── 2. BILLING ROUTER ───────────────────────────── */
-/* Mounted BEFORE express.json() because BillingRoute handles its own 
-   raw-body parsing for Stripe webhooks.
-*/
+/* ───────────────────────────── 3. ROUTERS ───────────────────────────── */
+// Billing Router (Mounted before express.json for Stripe Webhooks)
 const billingRouter = createBillingRouter(profilesDBConnection);
 app.use('/api/billing', billingRouter);
 
-/* ───────────────────────────── 3. BODY PARSERS ───────────────────────────── */
 app.use(express.json());
 
-/* ───────────────────────────── 4. MAIN APPLICATION ROUTES ───────────────────────────── */
-// Magic link routes (handles /magic/request and /magic/redeem)
+// Auth and Magic Link Routes
 app.use('/', createMagicLinkRoute(appDBConnection, profilesDBConnection));
 
-// Main testing routes
-app.use(
-  '/',
-  testsRoute(
-    profilesDBConnection,
-    spanishWordsDBConnection,
-    spanishTestsDBConnection,
-    appDBConnection
-  )
-);
+// Main Testing and Profile Routes
+app.use('/', testsRoute(
+  profilesDBConnection,
+  spanishWordsDBConnection,
+  spanishTestsDBConnection,
+  appDBConnection
+));
 
-/* ───────────────────────────── 5. STATIC ASSETS & SPA ───────────────────────────── */
-if (folderExists) {
+/* ───────────────────────────── 4. STATIC & LISTEN ───────────────────────────── */
+const frontendDistPath = path.join(__dirname, 'frontend-dist');
+if (fs.existsSync(frontendDistPath)) {
   app.use(express.static(frontendDistPath));
-}
-
-// Health check for Cloud Run
-app.get('/healthz', (req, res) => res.status(200).send('ok'));
-
-if (folderExists) {
   app.get('*', (req, res) => {
-    if (req.path.includes('.')) {
-      return res.status(404).send('Resource not found');
-    }
-
-    const indexPath = path.join(frontendDistPath, 'index.html');
-    if (fs.existsSync(indexPath)) {
-      return res.sendFile(indexPath);
-    }
-    return res.status(404).send('index.html missing');
-  });
-} else {
-  app.get('/', (req, res) => {
-    res.status(200).send('Backend running. Frontend missing in container.');
+    if (req.path.includes('.')) return res.status(404).send('Not found');
+    res.sendFile(path.join(frontendDistPath, 'index.html'));
   });
 }
 
-/* ───────────────────────────── 6. LISTEN ───────────────────────────── */
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server listening on port ${PORT}`);
 });
