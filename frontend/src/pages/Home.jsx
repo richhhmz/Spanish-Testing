@@ -32,7 +32,7 @@ const HomePage = () => {
   const [subStatus, setSubStatus] = useState('none');
   const [subPlan, setSubPlan] = useState('');
 
-  BackLog('Home.jsx start');
+  BackLog('@[Home.jsx] start');
 
   const { enqueueSnackbar } = useSnackbar();
   const navigate = useNavigate();
