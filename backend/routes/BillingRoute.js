@@ -130,18 +130,26 @@ const createBillingRouter = (profilesDBConnection) => {
       console.log("![/customer-portal] start");
       const userId = req.effectiveUserId;
       const profileModel = getProfileModel();
+
+      console.log("![/customer-portal] before get profile");
+
       const profile = await profileModel.findOne({ userId });
+
+      console.log(`![/customer-portal] profile=${JSON.stringify(profile,null,2)}`);
 
       const stripeCustomerId = profile?.subscription?.stripeCustomerId;
       if (!stripeCustomerId) {
         return res.status(400).json({ error: 'No Stripe customer found.' });
       }
 
+      console.log(`![/customer-portal] before portal create, FRONTEND_ORIGIN=${FRONTEND_ORIGIN}`);
+
       const portalSession = await stripe.billingPortal.sessions.create({
         customer: stripeCustomerId,
         return_url: `${FRONTEND_ORIGIN}/`,
       });
 
+      console.log(`![/customer-portal] portalSession=${JSON.stringify(portalSession,null,2)}`);
       console.log("![/customer-portal] end");
 
       return res.json({ url: portalSession.url });

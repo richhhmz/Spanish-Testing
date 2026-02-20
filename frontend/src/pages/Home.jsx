@@ -7,6 +7,7 @@ import { setEffectiveUserId as cacheEffectiveUserId } from '../utils/User.js';
 import { useSnackbar } from 'notistack';
 import { DefaultHeader } from './DefaultHeader.jsx';
 import { DefaultFooter } from './DefaultFooter.jsx';
+import { BackLog } from '../utils/BackLog';
 
 const HomePage = () => {
   // Profile + auth state
@@ -181,6 +182,7 @@ const HomePage = () => {
       BackLog("![handleManageSubscriptionClick] start");
       const res = await axios.post('/api/billing/customer-portal', {});
       BackLog("![handleManageSubscriptionClick] after /api/billing/customer-portal post");
+      BackLog(`![handleManageSubscriptionClick] res=${JSON.stringify(res,null,2)}`);
       const url = res.data?.url;
 
       if (url) {
