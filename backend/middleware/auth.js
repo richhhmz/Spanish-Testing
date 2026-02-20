@@ -5,7 +5,7 @@ export const requireAuth = (req, res, next) => {
     // Cookie-based access token
     const token = req.cookies?.token;
     if (!token) {
-      return res.status(401).json({ error: 'Missing token' });
+      return res.status(401).json({ error: '[requireAuth] Missing token' });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
