@@ -445,8 +445,6 @@ const createTestsRouter = (
       res.cookie('token', accessToken, accessCookieOptions);
 
       console.log(`@[/auth/refresh] Successfully rotated access token for: ${payload.userId}`);
-
-      console.log(`@[/auth/refresh] res=${JSON.stringify(res,null,2)}`);
       console.log("@[/auth/refresh] end");
 
       return res.json({ ok: true });

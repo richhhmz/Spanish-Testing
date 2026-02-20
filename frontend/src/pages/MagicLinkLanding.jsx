@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from '../api/AxiosClient';
 import { useSnackbar } from 'notistack';
-import { DefaultHeader } from './DefaultHeader.jsx';
-import { DefaultFooter } from './DefaultFooter.jsx';
+import { BackLog } from '../utils/BackLog';
 
 function useQuery() {
   return new URLSearchParams(useLocation().search);
@@ -18,6 +17,8 @@ export default function MagicLinkLanding() {
 
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
+
+  BackLog(`@[MagicLinkLanding] start`);
 
   useEffect(() => {
     let cancelled = false;

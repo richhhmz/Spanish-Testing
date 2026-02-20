@@ -76,13 +76,13 @@ export default function createMagicLinkRoute(appDBConnection, profilesDBConnecti
      ────────────────────────────────────────────────────────────────────────── */
   router.post('/magic/redeem', magicRedeemLimiter, async (req, res) => {
     try {
-      console.log("/magic/redeem");
+      console.log("@[/magic/redeem] start");
       const { token } = req.body || {};
       if (!token) return res.status(400).json({ error: 'Missing token' });
 
       const tokenHash = sha256(token);
 
-      console.log("/magic/redeem before findeOne");
+      console.log("@[/magic/redeem] before findeOne");
       const link = await MagicLink.findOne({
         tokenHash,
         purpose: 'login',
@@ -94,7 +94,7 @@ export default function createMagicLinkRoute(appDBConnection, profilesDBConnecti
         return res.status(400).json({ error: 'Invalid or expired link' });
       }
 
-      console.log("/magic/redeem before link.save");
+      console.log("@[/magic/redeem] before link.save");
 
       // Mark token as used immediately
       link.usedAt = new Date();
@@ -102,10 +102,13 @@ export default function createMagicLinkRoute(appDBConnection, profilesDBConnecti
 
       const email = link.email; // This is your User ID
 
-      console.log("/magic/redeem before getProfile");
+      console.log("@[/magic/redeem] before getProfile");
 
       // Fetch profile to check for Admin status
       const profile = await getProfile(email, profilesDBConnection);
+
+      console.log(`@[/magic/redeem] after getProfile, profile=${JSON.stringify(profile,null,2)}`);
+
       const isAdmin = !!profile?.isAdmin;
 
       // payload MUST use 'userId' key to satisfy auth.js middleware
@@ -114,7 +117,7 @@ export default function createMagicLinkRoute(appDBConnection, profilesDBConnecti
         isAdmin: isAdmin 
       };
 
-      console.log("/magic/redeem before signing");
+      console.log("@[/magic/redeem] before signing");
 
       const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '15m' });
       const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
@@ -139,7 +142,7 @@ export default function createMagicLinkRoute(appDBConnection, profilesDBConnecti
         maxAge: 7 * 24 * 60 * 60 * 1000 
       });
 
-      console.log("/magic/redeem before return");
+      console.log("@[/magic/redeem] before return");
 
       return res.json({ ok: true });
     } catch (err) {
