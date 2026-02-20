@@ -178,7 +178,9 @@ const HomePage = () => {
      --------------------------------------------------------- */
   const handleManageSubscriptionClick = async () => {
     try {
+      console.log(`@[handleManageSubscriptionClick] start `);
       const res = await axios.post('/api/billing/customer-portal', {});
+      console.log(`@[handleManageSubscriptionClick] after /api/billing/customer-portal, res=${JSON.stringify(res,null,2)}`);
       const url = res.data?.url;
 
       if (url) {
@@ -189,6 +191,7 @@ const HomePage = () => {
       enqueueSnackbar('Unexpected response from billing API', {
         variant: 'error',
       });
+      console.log(`@[handleManageSubscriptionClick] end `);
     } catch (err) {
       console.error(err);
       enqueueSnackbar(

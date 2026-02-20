@@ -1,6 +1,6 @@
 // backend/routes/BillingRoute.js
 
-import express from 'express';
+import express, { json } from 'express';
 import Stripe from 'stripe';
 
 import {
@@ -213,6 +213,7 @@ const createBillingRouter = (profilesDBConnection) => {
     effectiveUserMiddleware,
     async (req, res) => {
       try {
+        console.log(`@[/customer-portal] start`);
         const userId = req.effectiveUserId;
 
         const profileModel = profilesDBConnection.model(
@@ -220,7 +221,11 @@ const createBillingRouter = (profilesDBConnection) => {
           ProfileSchema
         );
 
+        console.log(`@[/customer-portal] before get profile`);
+
         const profile = await profileModel.findOne({ userId });
+
+        console.log(`@[/customer-portal] profile=${JSON.stringify(profile,null,2)}`);
 
         const stripeCustomerId = profile?.subscription?.stripeCustomerId;
 
@@ -230,10 +235,17 @@ const createBillingRouter = (profilesDBConnection) => {
           });
         }
 
+        console.log(`@[/customer-portal] before stripe.billingPortal.sessions.create`);
+
         const portalSession = await stripe.billingPortal.sessions.create({
           customer: stripeCustomerId,
           return_url: `${FRONTEND_ORIGIN}/`,
         });
+
+        console.log(`@[/customer-portal] after stripe.billingPortal.sessions.create`);
+        console.log(`@[/customer-portal] portalSession=${JSON.stringify(portalSession,null,2)}`);
+
+        console.log(`@[/customer-portal] end);
 
         return res.json({ url: portalSession.url });
       } catch (err) {
