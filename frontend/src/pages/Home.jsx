@@ -183,7 +183,7 @@ const HomePage = () => {
     try {
       BackLog(`@[handleManageSubscriptionClick] start `);
       const res = await axios.post('/api/billing/customer-portal', {});
-      BackLog(`@[handleManageSubscriptionClick] after /api/billing/customer-portal, res=${JSON.stringify(res,null,2)}`);
+      BackLog(`@[handleManageSubscriptionClick] after /api/billing/customer-portal, res.data.url=${res.data?.url}`);
       const url = res.data?.url;
 
       if (url) {
