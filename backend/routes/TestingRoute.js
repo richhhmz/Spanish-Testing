@@ -410,6 +410,8 @@ const createTestsRouter = (
   // ✅ Refresh: verify refresh token, set NEW access token cookie
   router.post('/auth/refresh', async (req, res) => {
     try {
+      console.log("@[/auth/refresh] start");
+
       const refreshToken = req.cookies?.refreshToken;
 
       if (!refreshToken) {
@@ -443,6 +445,9 @@ const createTestsRouter = (
       res.cookie('token', accessToken, accessCookieOptions);
 
       if (isDebug) console.log(`[refresh] Successfully rotated access token for: ${payload.userId}`);
+
+      console.log(`@[/auth/refresh] res=${JSON.stringify(res,null,2)}`);
+      console.log("@[/auth/refresh] end");
 
       return res.json({ ok: true });
     } catch (err) {

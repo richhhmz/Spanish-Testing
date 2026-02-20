@@ -7,6 +7,7 @@ import { setEffectiveUserId as cacheEffectiveUserId } from '../utils/User.js';
 import { useSnackbar } from 'notistack';
 import { DefaultHeader } from './DefaultHeader.jsx';
 import { DefaultFooter } from './DefaultFooter.jsx';
+import { BackLog } from '../utils/BackLog';
 
 const HomePage = () => {
   // Profile + auth state
@@ -30,6 +31,8 @@ const HomePage = () => {
   const [subTargetUserId, setSubTargetUserId] = useState('');
   const [subStatus, setSubStatus] = useState('none');
   const [subPlan, setSubPlan] = useState('');
+
+  BackLog('Home.jsx start');
 
   const { enqueueSnackbar } = useSnackbar();
   const navigate = useNavigate();
@@ -178,9 +181,9 @@ const HomePage = () => {
      --------------------------------------------------------- */
   const handleManageSubscriptionClick = async () => {
     try {
-      console.log(`@[handleManageSubscriptionClick] start `);
+      BackLog(`@[handleManageSubscriptionClick] start `);
       const res = await axios.post('/api/billing/customer-portal', {});
-      console.log(`@[handleManageSubscriptionClick] after /api/billing/customer-portal, res=${JSON.stringify(res,null,2)}`);
+      BackLog(`@[handleManageSubscriptionClick] after /api/billing/customer-portal, res=${JSON.stringify(res,null,2)}`);
       const url = res.data?.url;
 
       if (url) {
