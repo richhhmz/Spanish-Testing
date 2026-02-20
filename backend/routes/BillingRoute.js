@@ -245,7 +245,7 @@ const createBillingRouter = (profilesDBConnection) => {
         console.log(`@[/customer-portal] after stripe.billingPortal.sessions.create`);
         console.log(`@[/customer-portal] portalSession=${JSON.stringify(portalSession,null,2)}`);
 
-        console.log(`@[/customer-portal] end);
+        console.log(`@[/customer-portal] end`);
 
         return res.json({ url: portalSession.url });
       } catch (err) {
