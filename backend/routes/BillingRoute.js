@@ -127,6 +127,7 @@ const createBillingRouter = (profilesDBConnection) => {
 
   router.post('/customer-portal', requireAuth, effectiveUserMiddleware, async (req, res) => {
     try {
+      console.log("![/customer-portal]");
       const userId = req.effectiveUserId;
       const profileModel = getProfileModel();
       const profile = await profileModel.findOne({ userId });

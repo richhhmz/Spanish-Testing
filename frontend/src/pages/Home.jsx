@@ -178,6 +178,7 @@ const HomePage = () => {
      --------------------------------------------------------- */
   const handleManageSubscriptionClick = async () => {
     try {
+      console.log("![handleManageSubscriptionClick");
       const res = await axios.post('/api/billing/customer-portal', {});
       const url = res.data?.url;
 
