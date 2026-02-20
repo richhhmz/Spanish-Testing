@@ -178,8 +178,9 @@ const HomePage = () => {
      --------------------------------------------------------- */
   const handleManageSubscriptionClick = async () => {
     try {
-      console.log("![handleManageSubscriptionClick");
+      BackLog("![handleManageSubscriptionClick] start");
       const res = await axios.post('/api/billing/customer-portal', {});
+      BackLog("![handleManageSubscriptionClick] after /api/billing/customer-portal post");
       const url = res.data?.url;
 
       if (url) {

@@ -127,7 +127,7 @@ const createBillingRouter = (profilesDBConnection) => {
 
   router.post('/customer-portal', requireAuth, effectiveUserMiddleware, async (req, res) => {
     try {
-      console.log("![/customer-portal]");
+      console.log("![/customer-portal] start");
       const userId = req.effectiveUserId;
       const profileModel = getProfileModel();
       const profile = await profileModel.findOne({ userId });
@@ -141,6 +141,8 @@ const createBillingRouter = (profilesDBConnection) => {
         customer: stripeCustomerId,
         return_url: `${FRONTEND_ORIGIN}/`,
       });
+
+      console.log("![/customer-portal] end");
 
       return res.json({ url: portalSession.url });
     } catch (err) {
