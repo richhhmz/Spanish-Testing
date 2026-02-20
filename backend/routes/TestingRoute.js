@@ -52,6 +52,10 @@ const createTestsRouter = (
     maxAge: 7 * 24 * 60 * 60 * 1000,
   };
 
+  // ✅ Initialize the middleware with the connection
+  // This resolves the crash where the middleware couldn't find the DB
+  const useEffectiveUser = effectiveUserMiddleware(profilesDBConnection);
+
   const requireRealUserId = (req, res) => {
     // Always use the authenticated user (not effective user) for admin actions
     if (!req.user?.userId) {
