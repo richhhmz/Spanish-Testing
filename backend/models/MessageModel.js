@@ -16,15 +16,15 @@ export const MessageSchema = new mongoose.Schema(
     },
     messageFrom: { // ping, system, user
       type: String,
-      required: true,
+      required: false,
     },
     messageTo: { // pong, all, user
       type: String,
-      required: true,
+      required: false,
     },
     subject: {
       type: String,
-      required: false,
+      required: true,
     },
     message: {
       type: String,
