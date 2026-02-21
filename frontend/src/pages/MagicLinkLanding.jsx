@@ -18,8 +18,6 @@ export default function MagicLinkLanding() {
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
 
-  BackLog(`@[MagicLinkLanding] start`);
-
   useEffect(() => {
     let cancelled = false;
 

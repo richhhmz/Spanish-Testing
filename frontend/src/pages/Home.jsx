@@ -32,8 +32,6 @@ const HomePage = () => {
   const [subStatus, setSubStatus] = useState('none');
   const [subPlan, setSubPlan] = useState('');
 
-  BackLog('@[Home.jsx] start');
-
   const { enqueueSnackbar } = useSnackbar();
   const navigate = useNavigate();
 
@@ -181,9 +179,7 @@ const HomePage = () => {
      --------------------------------------------------------- */
   const handleManageSubscriptionClick = async () => {
     try {
-      BackLog(`@[handleManageSubscriptionClick] start `);
       const res = await axios.post('/api/billing/customer-portal', {});
-      BackLog(`@[handleManageSubscriptionClick] after /api/billing/customer-portal, res.data.url=${res.data?.url}`);
       const url = res.data?.url;
 
       if (url) {
@@ -194,7 +190,6 @@ const HomePage = () => {
       enqueueSnackbar('Unexpected response from billing API', {
         variant: 'error',
       });
-      console.log(`@[handleManageSubscriptionClick] end `);
     } catch (err) {
       console.error(err);
       enqueueSnackbar(
