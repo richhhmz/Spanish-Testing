@@ -555,13 +555,7 @@ const createTestsRouter = (
   router.get('/ping', requireAuth, async (_req, res) => {
     try {
       const result = await runPing(profilesDBConnection, appDBConnection);
-
-      res.status(200).json({
-        data: `pong: profiles=${result.profileCount}`,
-        profileCount: result.profileCount,
-        activeProfiles: result.activeProfiles,
-        alreadyLoggedToday: result.alreadyLoggedToday,
-      });
+      res.status(200).json(result);
     } catch (err) {
       console.error('[/ping] error:', err);
       res.status(500).json({ error: 'Ping failed' });
