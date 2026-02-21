@@ -2,6 +2,7 @@
 import { MessageSchema } from '../models/MessageModel.js';
 import { ProfileSchema } from '../models/ProfileModel.js';
 import { getTodaysDate } from './Util.js';
+import { sendPlainEmail } from './email.js';
 
 /**
  * Helper to bind the Message model to the messages DB connection.
@@ -25,9 +26,8 @@ function getProfileModel(profilesDBConnection) {
 
 /**
  * Run the daily ping:
- * - compute total profile count
  * - compute active subscription profiles
- * - if today's ping not yet logged, insert a "ping" message
+ * - if today's ping not yet logged, insert a "ping" message + send email
  * - return the counts
  */
 export async function runPing(profilesDBConnection, appDBConnection) {
@@ -35,7 +35,7 @@ export async function runPing(profilesDBConnection, appDBConnection) {
   const Profile = getProfileModel(profilesDBConnection);
 
   // Your existing "today" helper
-  const todayRaw = getTodaysDate();
+  const todayRaw = getTodaysDate(); // e.g. "2026-02-21"
 
   // Normalize to yyyy/mm/dd for subject + search key
   const todayYyyyMmDd = todayRaw.replace(/-/g, '/');
@@ -52,27 +52,37 @@ export async function runPing(profilesDBConnection, appDBConnection) {
     'subscription.status': 'active',
   });
 
-  // Only insert a new message if we haven't logged today's ping yet
+  // Only insert a new message + email if we haven't logged today's ping yet
   if (!existingPing) {
     const now = new Date();
     const timePart = now.toTimeString().split(' ')[0]; // "HH:MM:SS"
+    const subject = `ping for ${todayYyyyMmDd}`;
+    const payloadJson = JSON.stringify({
+      activeProfiles, // JSON format: { "activeProfiles": <number> }
+    });
 
     const messageDoc = new Message({
       messageNew: '',
-      messageType: 'ping',        // ping
+      messageType: 'ping', // ping
       messageDateAndTime: `${todayYyyyMmDd} ${timePart}`, // yyyy/mm/dd HH:MM:SS
-      messageFrom: '',            // blank as requested
-      messageTo: '',              // blank as requested
-      subject: `ping for ${todayYyyyMmDd}`, // subject "ping for yyyy/mm/dd"
-      message: JSON.stringify({
-        activeProfiles, // JSON format: { "activeProfiles": <number> }
-      }),
+      messageFrom: '', // blank as requested
+      messageTo: '',   // blank as requested
+      subject,
+      message: payloadJson,
     });
 
     await messageDoc.save();
+
+    // Send email to progspanlrn@gmail.com
+    await sendPlainEmail({
+      to: 'progspanlrn@gmail.com',
+      subject,
+      message: payloadJson,
+    });
   }
 
+  // /ping route can just res.json(result) where result is this object
   return {
-    activeProfileCount: activeProfiles
+    activeProfiles,
   };
 }

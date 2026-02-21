@@ -13,7 +13,10 @@ if (!SENDGRID_API_KEY) {
   sgMail.setApiKey(SENDGRID_API_KEY);
 }
 
-// Basic, safe URL allowlist rules for magic links
+/* ──────────────────────────────────────────────────────────────
+   Helpers
+   ────────────────────────────────────────────────────────────── */
+
 function assertSafeLinkUrl(linkUrl) {
   let u;
   try {
@@ -33,7 +36,6 @@ function assertSafeLinkUrl(linkUrl) {
   }
 
   // Optional: restrict hostnames so links can only go to your site
-  // Comment out if you truly need multiple hosts.
   const allowedHosts = new Set([
     new URL(FRONTEND_ORIGIN).host, // e.g. progspanlrn.com or localhost:5173
     'localhost:5173',
@@ -58,6 +60,19 @@ function normalizeEmail(to) {
   }
   return trimmed;
 }
+
+function escapeHtml(str = '') {
+  return String(str)
+    .replace(/&/g,  '&amp;')
+    .replace(/</g,  '&lt;')
+    .replace(/>/g,  '&gt;')
+    .replace(/"/g,  '&quot;')
+    .replace(/'/g,  '&#039;');
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Magic-link specific email
+   ────────────────────────────────────────────────────────────── */
 
 function buildMagicLinkEmail({ linkUrl }) {
   const safeUrl = assertSafeLinkUrl(linkUrl);
@@ -120,7 +135,57 @@ export async function sendMagicLinkEmail({ to, linkUrl }) {
   };
 
   if (!SENDGRID_API_KEY) {
-    // In dev, you might prefer "log instead of throw" — your choice.
+    throw new Error('SENDGRID_API_KEY missing; cannot send email.');
+  }
+
+  await sgMail.send(msg);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Generic / plain email sender
+   ────────────────────────────────────────────────────────────── */
+
+/**
+ * Send a generic email (no magic-link URL checks).
+ * 
+ * Usage:
+ *   await sendPlainEmail({
+ *     to: 'progspanlrn@gmail.com',
+ *     subject: 'ping for 2026/02/21',
+ *     message: '{"activeProfiles": 5}',
+ *   });
+ */
+export async function sendPlainEmail({ to, subject, message }) {
+  const normalizedTo = normalizeEmail(to);
+
+  if (!subject || typeof subject !== 'string') {
+    throw new Error('Email subject must be a non-empty string.');
+  }
+
+  const from = SENDGRID_FROM_EMAIL || 'no-reply@progspanlrn.com';
+  const safeMessage = typeof message === 'string'
+    ? message
+    : JSON.stringify(message ?? {}, null, 2);
+
+  const text = safeMessage;
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height:1.4; color:#111;">
+      <h3 style="margin-top:0; margin-bottom:12px;">${escapeHtml(subject)}</h3>
+      <pre style="white-space:pre-wrap; font-family: Consolas, Menlo, Monaco, monospace; background:#f5f5f5; padding:12px; border-radius:4px;">
+${escapeHtml(safeMessage)}
+      </pre>
+    </div>
+  `;
+
+  const msg = {
+    to: normalizedTo,
+    from,
+    subject,
+    text,
+    html,
+  };
+
+  if (!SENDGRID_API_KEY) {
     throw new Error('SENDGRID_API_KEY missing; cannot send email.');
   }
 
