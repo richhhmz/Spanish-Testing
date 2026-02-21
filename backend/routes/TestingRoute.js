@@ -21,6 +21,7 @@ import effectiveUserMiddleware from '../middleware/EffectiveUser.js';
 import crypto from 'crypto';
 import LoginAttempt from '../models/LoginAttempt.js';
 import { sendMagicLinkEmail } from '../tools/email.js';
+import { runPing } from '../tools/Ping.js';
 import { isDebug } from '../config.js';
 
 const createTestsRouter = (
@@ -552,9 +553,20 @@ const createTestsRouter = (
   /* ───────────────────────── Utilities ───────────────────────── */
 
   router.get('/ping', requireAuth, async (_req, res) => {
-    const count = await profileCount(profilesDBConnection);
-    res.status(200).json({ data: `pong: profiles=${count}` });
-  });
+    try {
+      const result = await runPing(profilesDBConnection, appDBConnection);
+
+      res.status(200).json({
+        data: `pong: profiles=${result.profileCount}`,
+        profileCount: result.profileCount,
+        activeProfiles: result.activeProfiles,
+        alreadyLoggedToday: result.alreadyLoggedToday,
+      });
+    } catch (err) {
+      console.error('[/ping] error:', err);
+      res.status(500).json({ error: 'Ping failed' });
+    }
+  });  });
 
   router.get('/resetCache', requireAuth, async (req, res) => {
     if (!req.user.isAdmin) return res.status(403).json({ error: 'Forbidden' });
