@@ -82,6 +82,8 @@ app.locals.spanishWordsDB = spanishWordsDBConnection;
 app.locals.spanishTestsDB = spanishTestsDBConnection;
 app.locals.messagesDB = appDBConnection;
 
+app.use(cookieParser());
+
 /* ───────────────────────────── Billing Router ───────────────────────────── */
 /* MUST come before express.json if using Stripe raw body */
 const billingRouter = createBillingRouter(profilesDBConnection);
@@ -89,7 +91,6 @@ app.use('/api/billing', billingRouter);
 
 /* ───────────────────────────── Parsers ───────────────────────────── */
 app.use(express.json());
-app.use(cookieParser());
 
 /* ───────────────────────────── Magic Link Routes ───────────────────────────── */
 /* Mounted at root because /auth/login is in TestingRoute */
