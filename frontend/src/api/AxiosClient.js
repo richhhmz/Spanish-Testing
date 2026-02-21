@@ -4,7 +4,7 @@ import { isDebug } from '../globals.js';
 import { BackLog } from '../utils/BackLog';
 
 const AxiosClient = axios.create({
-  origin: IS_DEV ? 'http://localhost:8080' : 'https://progspanlrn.com',
+  origin: 'https://progspanlrn.com',
   withCredentials: true,
 });
 
