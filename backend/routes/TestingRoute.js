@@ -566,7 +566,7 @@ const createTestsRouter = (
       console.error('[/ping] error:', err);
       res.status(500).json({ error: 'Ping failed' });
     }
-  });  });
+  });
 
   router.get('/resetCache', requireAuth, async (req, res) => {
     if (!req.user.isAdmin) return res.status(403).json({ error: 'Forbidden' });

@@ -1,8 +1,7 @@
 // backend/tools/Ping.js
 import { MessageSchema } from '../models/MessageModel.js';
 import { ProfileSchema } from '../models/ProfileModel.js';
-import { getDodaysDate } from './Utils.js';
-import { profileCount } from './UserProfile.js';
+import { getTodaysDate } from './Util.js';
 
 /**
  * Helper to bind the Message model to the messages DB connection.
@@ -36,7 +35,7 @@ export async function runPing(profilesDBConnection, appDBConnection) {
   const Profile = getProfileModel(profilesDBConnection);
 
   // Your existing "today" helper
-  const todayRaw = getDodaysDate();
+  const todayRaw = getTodaysDate();
 
   // Normalize to yyyy/mm/dd for subject + search key
   const todayYyyyMmDd = todayRaw.replace(/-/g, '/');
