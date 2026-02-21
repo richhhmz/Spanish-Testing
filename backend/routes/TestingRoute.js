@@ -410,12 +410,9 @@ const createTestsRouter = (
   // ✅ Refresh: verify refresh token, set NEW access token cookie
   router.post('/auth/refresh', async (req, res) => {
     try {
-      console.log("@[/auth/refresh] start");
-
       const refreshToken = req.cookies?.refreshToken;
 
       if (!refreshToken) {
-        console.warn('@[/auth/refresh] No refresh token found in cookies');
         return res.status(401).json({ error: 'Missing refresh token' });
       }
 
@@ -425,7 +422,6 @@ const createTestsRouter = (
       // 2. Validate that the payload contains our ID (which is the email)
       // Even if email is the ID, the key in the JWT MUST be 'userId' to match requireAuth
       if (!payload || !payload.userId) {
-        console.error('@[/auth/refresh] Token payload missing userId');
         return res.status(401).json({ error: 'Invalid refresh token payload' });
       }
 
@@ -443,9 +439,6 @@ const createTestsRouter = (
       // 4. Set the new access token in the 'token' cookie
       // Using the accessCookieOptions defined earlier in your TestingRoute.js
       res.cookie('token', accessToken, accessCookieOptions);
-
-      console.log(`@[/auth/refresh] Successfully rotated access token for: ${payload.userId}`);
-      console.log("@[/auth/refresh] end");
 
       return res.json({ ok: true });
     } catch (err) {

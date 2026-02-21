@@ -3,10 +3,8 @@ import axios from 'axios';
 import { isDebug } from '../globals.js';
 import { BackLog } from '../utils/BackLog';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
-
 const AxiosClient = axios.create({
-  baseURL: API_BASE_URL,
+  origin: IS_DEV ? 'http://localhost:8080' : 'https://progspanlrn.com',
   withCredentials: true,
 });
 
@@ -62,9 +60,7 @@ AxiosClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        BackLog("@[AxiosClient] before /auth/refresh");
         await AxiosClient.post('/auth/refresh'); // ✅ refresh via cookies
-        BackLog("@[AxiosClient] after /auth/refresh");
         resolveQueue(null);
         return AxiosClient(original);
       } catch (refreshErr) {
