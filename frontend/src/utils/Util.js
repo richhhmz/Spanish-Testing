@@ -14,17 +14,29 @@ export const homeIfNotToday = async (enqueueSnackbar) => {
     }
     const today = getTodaysDate();
     if (isDebug) { BackLog(`profile.lastVisitDate=${profile.lastVisitDate}, today=${today}`) };
+
     if (profile.lastVisitDate !== today) {
-      if (isDebug) BackLog("The day has changed. Going home");
+      if (isDebug) BackLog("The day has changed. Calling /ping and going home");
+
+      try {
+        // 🔔 Trigger backend daily ping (safe if multiple users call it)
+        await axios.get('/ping');
+      } catch (err) {
+        console.error('[homeIfNotToday] /ping failed:', err);
+      }
+
       enqueueSnackbar(
         'Resetting for a new day',
-        { variant: 'info', autoHideDuration: 5000, }
+        { variant: 'info', autoHideDuration: 5000 }
       );
+
       setTimeout(() => {
         window.location.href = '/';
       }, 5000);
+
       newDay = true;
     }
+
     return newDay;
   } catch (error) {
     console.error('homeIfNotToday failed:', error);
