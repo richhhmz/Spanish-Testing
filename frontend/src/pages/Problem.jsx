@@ -80,9 +80,9 @@ const Problem = () => {
       setSubmitting(true);
 
       await axios.post('/problem', {
-        subject: `Problem reported by ${userEmail}`,
-        message: {subject: subject.trim(), message: message.trim()},
         userEmail: userEmail,
+        subject: subject.trim(),
+        message: message.trim(),
       });
 
       enqueueSnackbar('Problem report submitted.', {

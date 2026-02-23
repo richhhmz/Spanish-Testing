@@ -584,18 +584,12 @@ const createTestsRouter = (
 
   router.post('/problem', requireAuth, async (req, res) => {
     try {
-      const { subject, message, userEmail } = req.body;
-
-      if (!subject?.trim() || !message?.trim()) {
-        return res.status(400).json({
-          error: 'Subject and message are required.',
-        });
-      }
+      const { userEmail, subject, message } = req.body;
 
       const result = await runProblem(appDBConnection, {
-        subject: subject.trim(),
-        message: message.trim(),
-        userEmail: userEmail.trim(),
+        userEmail: userEmail,
+        subject: subject,
+        message: message,
       });
 
       return res.status(201).json(result);
