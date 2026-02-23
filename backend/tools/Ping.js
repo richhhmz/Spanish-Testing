@@ -3,6 +3,7 @@ import { MessageSchema } from '../models/MessageModel.js';
 import { ProfileSchema } from '../models/ProfileModel.js';
 import { getTodaysDate } from './Util.js';
 import { sendPlainEmail } from './email.js';
+import { isDebug } from '../config.js';
 
 /**
  * Helper to bind the Message model to the messages DB connection.
@@ -31,6 +32,8 @@ function getProfileModel(profilesDBConnection) {
  * - return the counts
  */
 export async function runPing(profilesDBConnection, appDBConnection) {
+  if(isDebug)console.log("[runPing] begin");
+
   const Message = getMessageModel(appDBConnection);
   const Profile = getProfileModel(profilesDBConnection);
 
@@ -73,11 +76,14 @@ export async function runPing(profilesDBConnection, appDBConnection) {
     await messageDoc.save();
 
     // Send email to progspanlrn@gmail.com
+    if(isDebug)console.log("[runPing] before sending email")
     await sendPlainEmail({
       to: 'progspanlrn@gmail.com',
       subject: 'ping',
       message: payloadJson,
     });
+    if(isDebug)console.log("[runPing] after sending email")
+    if(isDebug)console.log("[runPing] end")
   }
 
   // /ping route can just res.json(result) where result is this object

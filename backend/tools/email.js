@@ -2,6 +2,7 @@
 import sgMail from '@sendgrid/mail';
 import {
   isProd,
+  isDebug,
   FRONTEND_ORIGIN,
   SENDGRID_API_KEY,
   SENDGRID_FROM_EMAIL
@@ -179,5 +180,7 @@ ${escapeHtml(safeMessage)}
     throw new Error('SENDGRID_API_KEY missing; cannot send email.');
   }
 
+  if(isDebug)console.log("[email.js sendPlainEmail] before email send");
   await sgMail.send(msg);
+  if(isDebug)console.log("[email.js sendPlainEmail] after email send");
 }
