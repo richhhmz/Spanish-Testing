@@ -12,7 +12,7 @@ const ProtectedRoute = () => {
 
     const check = async () => {
       try {
-        // ✅ authoritative cookie-based check
+        // authoritative cookie-based check
         await axios.get('/auth/effective-user');
         if (cancelled) return;
         setStatus('authed');

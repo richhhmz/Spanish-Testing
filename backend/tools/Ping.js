@@ -62,7 +62,6 @@ export async function runPing(profilesDBConnection, appDBConnection) {
     });
 
     const messageDoc = new Message({
-      messageNew: '',
       messageType: 'ping', // ping
       messageDateAndTime: `${todayYyyyMmDd} ${timePart}`, // yyyy/mm/dd HH:MM:SS
       messageFrom: '', // blank as requested
@@ -76,7 +75,7 @@ export async function runPing(profilesDBConnection, appDBConnection) {
     // Send email to progspanlrn@gmail.com
     await sendPlainEmail({
       to: 'progspanlrn@gmail.com',
-      subject,
+      subject: 'ping',
       message: payloadJson,
     });
   }

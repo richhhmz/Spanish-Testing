@@ -145,16 +145,6 @@ export async function sendMagicLinkEmail({ to, linkUrl }) {
    Generic / plain email sender
    ────────────────────────────────────────────────────────────── */
 
-/**
- * Send a generic email (no magic-link URL checks).
- * 
- * Usage:
- *   await sendPlainEmail({
- *     to: 'progspanlrn@gmail.com',
- *     subject: 'ping for 2026/02/21',
- *     message: '{"activeProfiles": 5}',
- *   });
- */
 export async function sendPlainEmail({ to, subject, message }) {
   const normalizedTo = normalizeEmail(to);
 
@@ -162,7 +152,7 @@ export async function sendPlainEmail({ to, subject, message }) {
     throw new Error('Email subject must be a non-empty string.');
   }
 
-  const from = SENDGRID_FROM_EMAIL || 'no-reply@progspanlrn.com';
+  const from = SENDGRID_FROM_EMAIL;
   const safeMessage = typeof message === 'string'
     ? message
     : JSON.stringify(message ?? {}, null, 2);

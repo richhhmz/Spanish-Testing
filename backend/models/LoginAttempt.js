@@ -47,13 +47,13 @@ const LoginAttemptSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// 🔥 Auto-delete expired login attempts
+// Auto-delete expired login attempts
 LoginAttemptSchema.index(
   { expiresAt: 1 },
   { expireAfterSeconds: 0 }
 );
 
-// 🔍 Helpful compound index for cooldown checks
+// Helpful compound index for cooldown checks
 LoginAttemptSchema.index({ userId: 1, createdAt: -1 });
 
 export default mongoose.model('LoginAttempt', LoginAttemptSchema);

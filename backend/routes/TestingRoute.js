@@ -22,6 +22,7 @@ import crypto from 'crypto';
 import LoginAttempt from '../models/LoginAttempt.js';
 import { sendMagicLinkEmail } from '../tools/email.js';
 import { runPing } from '../tools/Ping.js';
+import { runProblem } from '../tools/Problem.js';
 import { isDebug } from '../config.js';
 
 const createTestsRouter = (
@@ -579,6 +580,32 @@ const createTestsRouter = (
     const timestamp = new Date().toISOString();
     console.log(`[BackLog ${timestamp}]`, context ? `[${context}]` : '', message);
     res.status(200).json({ ok: true });
+  });
+
+  router.post('/problem', requireAuth, async (req, res) => {
+    try {
+      const { subject, message, userEmail } = req.body;
+
+      if (!subject?.trim() || !message?.trim()) {
+        return res.status(400).json({
+          error: 'Subject and message are required.',
+        });
+      }
+
+      const result = await runProblem(appDBConnection, {
+        subject: subject.trim(),
+        message: message.trim(),
+        userEmail: userEmail.trim(),
+      });
+
+      return res.status(201).json(result);
+
+    } catch (err) {
+      console.error('[/problem] error:', err);
+      return res.status(500).json({
+        error: 'Failed to record problem report.',
+      });
+    }
   });
 
   return router;

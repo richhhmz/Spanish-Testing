@@ -10,7 +10,7 @@ export const requireAuth = (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // 🚨 Make sure payload actually has userId
+    // Make sure payload actually has userId
     if (!decoded || !decoded.userId) {
       return res.status(401).json({ error: 'Invalid token payload' });
     }

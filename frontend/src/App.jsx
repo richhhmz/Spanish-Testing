@@ -16,6 +16,7 @@ import { ResetCache } from './pages/ResetCache';
 import { Ping } from './utils/Ping';
 import { BackLog } from './utils/BackLog';
 import { Public } from './pages/Public';
+import Problem from './pages/Problem.jsx';
 import MagicLinkLanding from './pages/MagicLinkLanding.jsx';
 import WaitingForEmail from './pages/WaitingForEmail.jsx';
 
@@ -43,6 +44,7 @@ const App = () => {
         <Route path="/spanish/editTest/:word/:source" element={<EditSpanishTest />} />
         <Route path="/spanish/editProfile" element={<EditProfile />} />
         <Route path="/resetCache" element={<ResetCache />} />
+        <Route path="/problem" element={<Problem />} />
       </Route>
     </Routes>
   );

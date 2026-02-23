@@ -17,7 +17,6 @@ export const addMessage = async (appDBConnection, messageData) => {
   const now = new Date();
 
   const newMessage = new messageModel({
-    messageNew: '', // blank per requirement
     messageType: messageData.messageType,
     messageDateAndTime: now.toISOString(), // sortable, ISO-safe
     messageFrom: messageData.messageFrom,

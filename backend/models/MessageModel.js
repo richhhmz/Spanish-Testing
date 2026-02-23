@@ -2,10 +2,6 @@ import mongoose from 'mongoose';
 
 export const MessageSchema = new mongoose.Schema(
   {
-    messageNew: { // "new" if new else blank
-      type: String,
-      required: false,
-    },
     messageType: { // system, ping, user, broadcast
       type: String,
       required: true,

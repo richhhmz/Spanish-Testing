@@ -280,13 +280,7 @@ const MessageListHtml = ({ messageListData }) => {
             {rows.map((msg, index) => (
               <tr key={msg._id || index}>
                 <td className="px-3 py-2 border border-gray-300 text-center">
-                  {msg.messageNew === 'new' ? (
-                    <span className="text-xs font-semibold text-red-600">
-                      NEW
-                    </span>
-                  ) : (
-                    ''
-                  )}
+                  ''
                 </td>
                 <td className="px-3 py-2 border border-gray-300">
                   {msg.messageType}
