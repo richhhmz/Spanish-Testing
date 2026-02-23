@@ -5,7 +5,7 @@ var newDay = false;
 
 export const homeIfNotToday = async (enqueueSnackbar) => {
   try {
-    if(isDebug)BackLog("homeIfNotToday is checking if day changed");
+    if(isDebug)BackLog("[homeIfNotToday] is checking if day changed");
     const response = await axios.get('/api/spanish/getProfile');
     const profile = response.data?.data;
     if (!profile || !profile.lastVisitDate) {
@@ -13,19 +13,22 @@ export const homeIfNotToday = async (enqueueSnackbar) => {
       return;
     }
     const today = getTodaysDate();
-    if (isDebug) { BackLog(`homeIfNotToday] profile.lastVisitDate=${profile.lastVisitDate}, today=${today}`) };
+    if (isDebug) { BackLog(`[homeIfNotToday] profile.lastVisitDate=${profile.lastVisitDate}, today=${today}`) };
 
-    if (profile.lastVisitDate !== today) {
-      if (isDebug) BackLog("homeIfNotToday] The day has changed. Calling /ping and going home");
-
+    if (profile.lastTestDate !== today) {
+      if (isDebug) BackLog("[homeIfNotToday] The day since the last test has changed. Calling /ping");
       try {
         // 🔔 Trigger backend daily ping (safe if multiple users call it)
-        if (isDebug){"homeIfNotToday] before ping"}
+        if (isDebug){"[homeIfNotToday] before ping"}
         await axios.get('/ping');
-        if (isDebug){"homeIfNotToday] after ping"}
+        if (isDebug){"[homeIfNotToday] after ping"}
       } catch (err) {
         console.error('[homeIfNotToday] /ping failed:', err);
       }
+    }
+
+    if (profile.lastVisitDate !== today) {
+      if (isDebug) BackLog("[homeIfNotToday] The day has changed. Going home");
 
       enqueueSnackbar(
         'Resetting for a new day',

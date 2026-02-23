@@ -7,6 +7,7 @@ import { setEffectiveUserId as cacheEffectiveUserId } from '../utils/User.js';
 import { useSnackbar } from 'notistack';
 import { DefaultHeader } from './DefaultHeader.jsx';
 import { DefaultFooter } from './DefaultFooter.jsx';
+import { isDebug } from '../globals.js';
 import { BackLog } from '../utils/BackLog';
 
 const HomePage = () => {
