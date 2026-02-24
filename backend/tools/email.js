@@ -178,7 +178,7 @@ export async function sendPlainEmail({ to, subject, message }) {
     throw new Error('Email subject must be a non-empty string.');
   }
 
-  const from = SENDGRID_FROM_EMAIL;
+  const from = SENDGRID_FROM_EMAIL || 'no-reply@progspanlrn.com';
   const safeMessage = typeof message === 'string'
     ? message
     : JSON.stringify(message ?? {}, null, 2);
