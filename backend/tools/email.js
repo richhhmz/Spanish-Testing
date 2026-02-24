@@ -139,7 +139,32 @@ export async function sendMagicLinkEmail({ to, linkUrl }) {
     throw new Error('SENDGRID_API_KEY missing; cannot send email.');
   }
 
-  await sgMail.send(msg);
+  // 🔍 DEBUG ADDED HERE
+  if (isDebug) {
+    console.log('[email.js sendMagicLinkEmail] from:', from);
+    console.log('[email.js sendMagicLinkEmail] to:', normalizedTo);
+    console.log('[email.js sendMagicLinkEmail] subject:', subject);
+    console.log('[email.js sendMagicLinkEmail] linkUrl:', linkUrl);
+  }
+
+  try {
+    await sgMail.send(msg);
+    if (isDebug) {
+      console.log('[email.js sendMagicLinkEmail] after email send');
+    }
+  } catch (err) {
+    console.error('[email.js sendMagicLinkEmail] SendGrid error:', err);
+
+    if (err.response && err.response.body) {
+      console.error(
+        '[email.js sendMagicLinkEmail] SendGrid error body:',
+        JSON.stringify(err.response.body, null, 2)
+      );
+    }
+
+    // keep original behavior: let caller see the error
+    throw err;
+  }
 }
 
 /* ──────────────────────────────────────────────────────────────
@@ -180,7 +205,29 @@ ${escapeHtml(safeMessage)}
     throw new Error('SENDGRID_API_KEY missing; cannot send email.');
   }
 
-  if(isDebug)console.log("[email.js sendPlainEmail] before email send");
-  await sgMail.send(msg);
-  if(isDebug)console.log("[email.js sendPlainEmail] after email send");
+  // 🔍 DEBUG ADDED HERE
+  if (isDebug) {
+    console.log('[email.js sendPlainEmail] from:', from);
+    console.log('[email.js sendPlainEmail] to:', normalizedTo);
+    console.log('[email.js sendPlainEmail] subject:', subject);
+    console.log('[email.js sendPlainEmail] message:', safeMessage);
+  }
+
+  try {
+    if (isDebug) console.log('[email.js sendPlainEmail] before email send');
+    await sgMail.send(msg);
+    if (isDebug) console.log('[email.js sendPlainEmail] after email send');
+  } catch (err) {
+    console.error('[email.js sendPlainEmail] SendGrid error:', err);
+
+    if (err.response && err.response.body) {
+      console.error(
+        '[email.js sendPlainEmail] SendGrid error body:',
+        JSON.stringify(err.response.body, null, 2)
+      );
+    }
+
+    // keep existing behavior: let the caller handle the failure
+    throw err;
+  }
 }
