@@ -60,9 +60,12 @@ export async function runPing(profilesDBConnection, appDBConnection) {
     const now = new Date();
     const timePart = now.toTimeString().split(' ')[0]; // "HH:MM:SS"
     const subject = `ping for ${todayYyyyMmDd}`;
+    if(isDebug)console.log("[runPing] before get payloadJson");
     const payloadJson = JSON.stringify({
       activeProfiles, // JSON format: { "activeProfiles": <number> }
     });
+    if(isDebug)console.log("[runPing] after get payloadJson");
+    if(isDebug)console.log(`[runPing] payloadJson=${payloadJson}`);
 
     const messageDoc = new Message({
       messageType: 'ping', // ping
@@ -76,7 +79,7 @@ export async function runPing(profilesDBConnection, appDBConnection) {
     await messageDoc.save();
 
     // Send email to progspanlrn@gmail.com
-    if(isDebug)console.log("[runPing] before sending email")
+    if(isDebug)console.log("[runPing] before sending email");
     await sendPlainEmail({
       to: 'progspanlrn@gmail.com',
       subject: 'ping',
