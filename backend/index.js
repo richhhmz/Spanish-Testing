@@ -13,7 +13,8 @@ import createMagicLinkRoute from './routes/MagicLinkRoute.js';
 
 import {
   PORT,
-  IS_DEV,
+  isDebug,
+  isProd,
   profilesDBURL,
   spanishWordsDBURL,
   spanishTestsDBURL,
@@ -35,7 +36,7 @@ const folderExists = fs.existsSync(frontendDistPath);
 
 /* ───────────────────────────── Diagnostics ───────────────────────────── */
 console.log('[BOOT] index.js loaded');
-console.log(`[Server] Environment: ${IS_DEV ? 'Development' : 'Production'}`);
+console.log(`[Server] Environment: ${isProd ? 'Production' : 'Development'}`);
 console.log(`[Server] Static path: ${frontendDistPath}`);
 console.log(`[Server] Static folder exists: ${folderExists}`);
 
@@ -51,12 +52,11 @@ if (!folderExists) {
 
 /* ───────────────────────────── CORS ───────────────────────────── */
 // If frontend + backend share same origin in production, this is still safe.
-const PROD_ORIGIN = process.env.FRONTEND_ORIGIN || 'https://progspanlrn.com';
-const devOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN;
 
 app.use(
   cors({
-    origin: IS_DEV ? devOrigins : PROD_ORIGIN,
+    origin: FRONTEND_ORIGIN,
     credentials: true,
   })
 );
@@ -140,7 +140,7 @@ if (folderExists) {
 }
 
 /* ───────────────────────────── Listen ───────────────────────────── */
-console.log('[BOOT] about to listen on PORT=', process.env.PORT);
+console.log(`[BOOT] about to listen on PORT=${PORT}`);
 
 app.listen(PORT, () => {
   console.log(`🚀 Server listening on port ${PORT}`);

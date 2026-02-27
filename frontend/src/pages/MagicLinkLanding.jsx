@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from '../api/AxiosClient';
 import { useSnackbar } from 'notistack';
+import { isDebug } from '../globals.js';
 import { BackLog } from '../utils/BackLog';
 
 function useQuery() {
@@ -22,6 +23,7 @@ export default function MagicLinkLanding() {
     let cancelled = false;
 
     async function redeem() {
+      if(isDebug)BackLog(`[MagicLinkLanding] redeem() begin`);
       if (!token) {
         setWorking(false);
         setStatus('Missing token in URL.');
@@ -37,7 +39,8 @@ export default function MagicLinkLanding() {
 
         if (cancelled) return;
 
-        enqueueSnackbar('Signed in!', { variant: 'success' });
+        // enqueueSnackbar('Signed in!', { variant: 'success' }); Was happening even if auth-failed
+        if(isDebug)BackLog(`[MagicLinkLanding] redeem() end`);
         navigate('/', { replace: true });
       } catch (err) {
         console.error('magic redeem failed:', err);

@@ -1,9 +1,6 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-export const PORT = process.env.PORT || 8080;
-export const IS_DEV = process.env.NODE_ENV !== 'production';
-
 const {
   ATLAS_USER,
   ATLAS_PASS,
@@ -42,9 +39,10 @@ export const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY;
 export const STRIPE_PRICE_ID        = process.env.STRIPE_PRICE_ID;
 
 export const SENDGRID_API_KEY   = process.env.SENDGRID_API_KEY;
-export const SENDGRID_FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL;
+export const SENDGRID_EMAIL_FROM = process.env.SENDGRID_EMAIL_FROM;
 
-export const FRONTEND_ORIGIN =
-  process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
+export const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN;
 
-export const isProd = process.env.NODE_ENV === 'production';
+export const isProd = false;
+export const PORT = isProd?'':8080;
+

@@ -20,29 +20,32 @@ const ensureSubscriptionBlock = async (profile) => {
 };
 
 export const getProfile = async (userId, profilesDBConnection) => {
-  try {
-    if (!userId || typeof userId !== 'string') {
-      throw new Error('getProfile: userId is missing or invalid');
-    }
+  const profileModel = profilesDBConnection.model('Profile', ProfileSchema);
 
-    const trimmedUserId = userId.trim();
+  let profile = await profileModel.findOne({ userId: userId });
 
-    // ✅ SAFE REGISTRATION:
-    // This looks for the model on the connection first. 
-    // If it's not found, it registers it using your ProfileSchema.
-    const ProfileModel =
-      profilesDBConnection.models.Profile ||
-      profilesDBConnection.model('Profile', ProfileSchema);
+  // If profile doesn't exist, create a brand-new one
+  if (profile == null) {
+    const newProfile = {
+      userId: userId.trim(),
+      userPreferredName: '',
+      isAdmin: false,
+      testsPerDay: defaultTestsPerDay,
+      lastTestDate: defaultLastTestDate,
+      firstVisitDate: getTodaysDate(),
+      lastVisitDate: getTodaysDate(),
+      lastMessagesReadDate: defaultLastMessageReadDate,
 
-    const profile = await ProfileModel.findOne({
-      userId: trimmedUserId,
-    }).lean();
+      // Make subscription state explicit for new users
+      subscription: {
+        status: 'none',
+      },
+    };
 
-    return profile;
-  } catch (err) {
-    console.error('❌ getProfile failed:', err);
-    throw err;
+    profile = await profileModel.create(newProfile);
   }
+
+  return profile;
 };
 
 export const updateProfile = async (userId, profilesDBConnection, updates) => {

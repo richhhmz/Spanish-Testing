@@ -4,8 +4,7 @@ import {
   isProd,
   isDebug,
   FRONTEND_ORIGIN,
-  SENDGRID_API_KEY,
-  SENDGRID_FROM_EMAIL
+  SENDGRID_API_KEY
 } from '../config.js';
 
 if (!SENDGRID_API_KEY) {
@@ -38,12 +37,7 @@ function assertSafeLinkUrl(linkUrl) {
 
   // Optional: restrict hostnames so links can only go to your site
   const allowedHosts = new Set([
-    new URL(FRONTEND_ORIGIN).host, // e.g. progspanlrn.com or localhost:5173
-    'localhost:5173',
-    'localhost:3000',
-    '127.0.0.1:5173',
-    '127.0.0.1:3000',
-  ]);
+    new URL(FRONTEND_ORIGIN).host]);
 
   if (!allowedHosts.has(u.host)) {
     throw new Error(`Magic link host not allowed: ${u.host}`);
@@ -125,7 +119,7 @@ export async function sendMagicLinkEmail({ to, linkUrl }) {
   const normalizedTo = normalizeEmail(to);
   const { subject, text, html } = buildMagicLinkEmail({ linkUrl });
 
-  const from = SENDGRID_FROM_EMAIL || 'no-reply@progspanlrn.com';
+  const from = 'no-reply@progspanlrn.com';
 
   const msg = {
     to: normalizedTo,
@@ -149,9 +143,7 @@ export async function sendMagicLinkEmail({ to, linkUrl }) {
 
   try {
     await sgMail.send(msg);
-    if (isDebug) {
-      console.log('[email.js sendMagicLinkEmail] after email send');
-    }
+    if(isDebug)console.log('[email.js sendMagicLinkEmail] after email send');
   } catch (err) {
     console.error('[email.js sendMagicLinkEmail] SendGrid error:', err);
 
@@ -178,7 +170,7 @@ export async function sendPlainEmail({ to, subject, message }) {
     throw new Error('Email subject must be a non-empty string.');
   }
 
-  const from = SENDGRID_FROM_EMAIL || 'no-reply@progspanlrn.com';
+  const from = 'no-reply@progspanlrn.com';
   const safeMessage = typeof message === 'string'
     ? message
     : JSON.stringify(message ?? {}, null, 2);
@@ -214,9 +206,9 @@ ${escapeHtml(safeMessage)}
   }
 
   try {
-    if (isDebug) console.log('[email.js sendPlainEmail] before email send');
+    if (isDebug)console.log('[email.js sendPlainEmail] before email send');
     await sgMail.send(msg);
-    if (isDebug) console.log('[email.js sendPlainEmail] after email send');
+    if (isDebug)console.log('[email.js sendPlainEmail] after email send');
   } catch (err) {
     console.error('[email.js sendPlainEmail] SendGrid error:', err);
 

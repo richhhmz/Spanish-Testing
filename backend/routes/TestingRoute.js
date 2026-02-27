@@ -81,20 +81,19 @@ const createTestsRouter = (
       const from = process.env.EMAIL_FROM;
       const origin = process.env.FRONTEND_ORIGIN;
 
-      if (isDebug) {
+      if (isDebug) 
         console.log('[test-email] env', {
           hasSendgridKey: hasKey,
           emailFrom: from,
           appOrigin: origin,
         });
-      }
 
       await sendMagicLinkEmail({
         to: 'richhhmz@gmail.com',
         linkUrl: `${origin}/magic?token=test`,
       });
 
-      if (isDebug) console.log('[test-email] sent ok');
+      if (isDebug)console.log('[test-email] sent ok');
       res.json({ ok: true });
     } catch (err) {
       console.error('[test-email] failed', err?.response?.body || err);
@@ -377,13 +376,17 @@ const createTestsRouter = (
   router.get('/auth/effective-user', requireAuth, async (req, res) => {
     try {
       const realUserId = req.user.userId;
+      if(isDebug)console.log(`[/auth/effective-user] realUserId=${realUserId}`)
 
+      if(isDebug)console.log(`[/auth/effective-user] before getProfile`);
       const profile = await getProfile(realUserId, profilesDBConnection);
 
       if (!profile) {
         // No profile found for this authenticated user
+        if(isDebug)console.log(`[/auth/effective-user] missing profile`);
         return res.status(404).json({ error: 'Profile not found' });
       }
+      if(isDebug)console.log(`[/auth/effective-user] after getProfile`);
 
       const impersonation = profile.impersonation || {};
       const effectiveUserId = impersonation.active
@@ -444,7 +447,7 @@ const createTestsRouter = (
 
       return res.json({ ok: true });
     } catch (err) {
-      if (isDebug) console.error('[refresh] JWT Verification failed:', err.message);
+      if(isDebug)console.error('[refresh] JWT Verification failed:', err.message);
 
       // If the refresh token itself is expired or tampered with, 
       // the user must log in again.

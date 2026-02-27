@@ -1,10 +1,10 @@
 // frontend/src/api/AxiosClient.js
 import axios from 'axios';
-import { isDebug } from '../globals.js';
+import { isDebug, isProd } from '../globals.js';
 import { BackLog } from '../utils/BackLog';
 
 const AxiosClient = axios.create({
-  origin: 'https://progspanlrn.com',
+  origin: isProd?'https://progspanlrn.com':'http://localhost:8080',
   withCredentials: true,
 });
 
@@ -41,7 +41,7 @@ AxiosClient.interceptors.response.use(
 
     // Never retry refresh itself
     if (original.url === '/auth/refresh') {
-      if (isDebug) console.warn('⛔ Refresh failed — redirecting to /login');
+      if(isDebug)console.warn('⛔ Refresh failed — redirecting to /login');
       window.location.replace('/login?reason=session-expired');
       return new Promise(() => {}); // hard stop
     }

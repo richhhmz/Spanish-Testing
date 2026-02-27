@@ -6,6 +6,7 @@ import { MagicLinkSchema } from '../models/MagicLink.js';
 import { sendMagicLinkEmail } from '../tools/email.js';
 import { magicRequestLimiter, magicRedeemLimiter } from '../middleware/rateLimiters.js';
 import { getProfile } from '../tools/UserProfile.js';
+import { isDebug } from '../config.js';
 
 /**
  * Helper to hash the raw token before storing/checking in DB
@@ -57,7 +58,7 @@ export default function createMagicLinkRoute(appDBConnection, profilesDBConnecti
         userAgent: req.get('user-agent') || '',
       });
 
-      const appOrigin = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
+      const appOrigin = process.env.FRONTEND_ORIGIN || 'http://localhost:8080';
       const linkUrl = `${appOrigin}/magic?token=${rawToken}`;
 
       await sendMagicLinkEmail({ to: normalizedEmail, linkUrl });
@@ -76,8 +77,10 @@ export default function createMagicLinkRoute(appDBConnection, profilesDBConnecti
      ────────────────────────────────────────────────────────────────────────── */
   router.post('/magic/redeem', magicRedeemLimiter, async (req, res) => {
     try {
+      if(isDebug)console.log(`[/magic/redeem] /magic/redeem start`);
       const { token } = req.body || {};
       if (!token) return res.status(400).json({ error: 'Missing token' });
+      if(isDebug)console.log(`[/magic/redeem] /magic/redeem token=${token}`);
 
       const tokenHash = sha256(token);
       const link = await MagicLink.findOne({
@@ -88,6 +91,7 @@ export default function createMagicLinkRoute(appDBConnection, profilesDBConnecti
       });
 
       if (!link) {
+        if(isDebug)console.log(`[/magic/redeem] /magic/redeem link not found`);
         return res.status(400).json({ error: 'Invalid or expired link' });
       }
 
@@ -98,7 +102,9 @@ export default function createMagicLinkRoute(appDBConnection, profilesDBConnecti
       const email = link.email; // This is your User ID
 
       // Fetch profile to check for Admin status
+      if(isDebug)console.log(`[/magic/redeem] before getProfile`);
       const profile = await getProfile(email, profilesDBConnection);
+      if(isDebug)console.log(`[/magic/redeem] after getProfile`);
 
       const isAdmin = !!profile?.isAdmin;
 
@@ -121,15 +127,19 @@ export default function createMagicLinkRoute(appDBConnection, profilesDBConnecti
       };
 
       // Set cookies for Cookie-based Auth
+      if(isDebug)console.log(`[/magic/redeem] /magic/redeem creating token`);
       res.cookie('token', accessToken, { 
         ...cookieOptions, 
         maxAge: 15 * 60 * 1000 
       });
 
+      if(isDebug)console.log(`[/magic/redeem] /magic/redeem creating refeshToken`);
       res.cookie('refreshToken', refreshToken, { 
         ...cookieOptions, 
         maxAge: 7 * 24 * 60 * 60 * 1000 
       });
+
+      if(isDebug)console.log(`[/magic/redeem] /magic/redeem end`);
 
       return res.json({ ok: true });
     } catch (err) {

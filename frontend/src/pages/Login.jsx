@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../api/AxiosClient';
 import { useSnackbar } from 'notistack';
-import { DefaultHeader } from './DefaultHeader.jsx';
-import { DefaultFooter } from './DefaultFooter.jsx';
 
 export default function Login() {
   const [email, setEmail] = useState('');
