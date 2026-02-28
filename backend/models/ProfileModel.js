@@ -93,6 +93,10 @@ export const ProfileSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    lastTestTime: {
+      type: String,
+      required: true,
+    },
     firstVisitDate: {
       type: String,
       required: true,

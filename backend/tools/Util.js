@@ -9,12 +9,12 @@ export const randomSelectByScore = (word, score, lastTestDate, frequency) => {
   return r <= y;
 }
 
-export const getTodaysDate = () => {
+export const getTodaysDateUTC = () => {
     const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-based, so we add 1
-    const day = String(today.getDate()).padStart(2, '0');
-    const todayStr = `${year}-${month}-${day}`;
-    // const todayStr = `${year}-${month}-01`;
-    return todayStr;
-}
+
+    const year  = today.getUTCFullYear();
+    const month = String(today.getUTCMonth() + 1).padStart(2, '0');
+    const day   = String(today.getUTCDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+};

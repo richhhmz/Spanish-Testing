@@ -8,12 +8,12 @@ export const homeIfNotToday = async (enqueueSnackbar) => {
     if(isDebug)BackLog("[homeIfNotToday] is checking if day changed");
     const response = await axios.get('/api/spanish/getProfile');
     const profile = response.data?.data;
-    if (!profile || !profile.lastVisitDate) {
-      if(isDebug)BackLog("[homeIfNotToday] missing profile or profile.lastVisitDate");
+    if (!profile || !profile.lastTestDate) {
+      if(isDebug)BackLog("[homeIfNotToday] missing profile or profile.lastTestDate");
       return;
     }
     const today = getTodaysDate();
-    if(isDebug)BackLog(`[homeIfNotToday] profile.lastVisitDate=${profile.lastVisitDate}, today=${today}`);
+    if(isDebug)BackLog(`[homeIfNotToday] profile.lastTestDate=${profile.lastTestDate}, today=${today}`);
 
     if (profile.lastTestDate !== today) {
       if(isDebug)BackLog("[homeIfNotToday] The day since the last test has changed. Calling /ping");
@@ -27,8 +27,8 @@ export const homeIfNotToday = async (enqueueSnackbar) => {
       }
     }
 
-    if (profile.lastVisitDate !== today) {
-      if(isDebug)BackLog("[homeIfNotToday] The day has changed. Going home");
+    if (profile.lastTestDate !== today) {
+      if(isDebug)BackLog("[homeIfNotToday] The test day has changed. Going home");
 
       enqueueSnackbar(
         'Resetting for a new day',
@@ -73,6 +73,25 @@ export const getTodaysDate = () => {
   const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-based, so we add 1
   const day = String(today.getDate()).padStart(2, '0');
   const todayStr = `${year}-${month}-${day}`;
-  // const todayStr = `${year}-${month}-01`;
   return todayStr;
+};
+
+export const getTodaysDateUTC = () => {
+    const today = new Date();
+
+    const year  = today.getUTCFullYear();
+    const month = String(today.getUTCMonth() + 1).padStart(2, '0');
+    const day   = String(today.getUTCDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+};
+
+export const getTimeNow = () => {
+    const now = new Date();
+
+    const hours   = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+
+    return `${hours}:${minutes}:${seconds}`;
 };

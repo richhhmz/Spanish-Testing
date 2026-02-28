@@ -3,7 +3,6 @@ import express from 'express';
 import {
   getProfile,
   updateProfile,
-  profileCount,
   setSubscriptionInfo,
 } from '../tools/UserProfile.js';
 import { getAllSpanishWords, updateWord } from '../tools/Words.js';
@@ -238,10 +237,14 @@ const createTestsRouter = (
   router.get('/api/spanish/todaysSpanishTests', requireAuth, effectiveUserMiddleware, async (req, res) => {
     try {
       const userId = req.effectiveUserId;
+      const { today, timeNow } = req.query;
+      if(isDebug)console.log(`[/api/spanish/todaysSpanishTests] todaysDate=${today}, timeNow=${timeNow}`);
       if (!userId) return;
 
       const tests = await getTodaysSpanishTests(
         userId,
+        today,
+        timeNow,
         profilesDBConnection,
         spanishWordsDBConnection,
         spanishTestsDBConnection

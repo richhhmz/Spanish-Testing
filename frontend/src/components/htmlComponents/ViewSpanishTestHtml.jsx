@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { FaPlus, FaMinus } from 'react-icons/fa';
 import axios from '../../api/AxiosClient';
 import { useSnackbar } from 'notistack';
-import { getUrlForCode } from '../../utils/Util.js';
+import { getUrlForCode, getTodaysDate, getTimeNow } from '../../utils/Util.js';
 import { defaultPreviousTestDate } from '../../globals.js';
 import { DefaultFooter } from '../../pages/DefaultFooter.jsx';
 
@@ -41,14 +41,6 @@ class ViewSpanishTestHtml extends Component {
     }
   }
 
-  getTodayDateString = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
   closeWindow = () => {
     window.close();
   };
@@ -84,7 +76,8 @@ class ViewSpanishTestHtml extends Component {
     const { viewSpanishTestData } = this.state;
 
     this.setState((prevState) => {
-      const todayDate = this.getTodayDateString(); // Get today's date
+      const todaysDate = getTodaysDate();
+      const timeNow = getTimeNow();
 
       return {
         viewSpanishTestData: {
@@ -92,7 +85,7 @@ class ViewSpanishTestHtml extends Component {
           testDoc: {
             ...prevState.viewSpanishTestData.testDoc,
             testCompleted: true,
-            lastTestDate: todayDate,
+            lastTestDate: todaysDate,
             numberOfTrials: prevState.viewSpanishTestData.testDoc.numberOfTrials + 1,
           },
         },

@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from '../api/AxiosClient';
-import { getTodaysDate } from '../utils/Util.js';
+import { getTodaysDateUTC } from '../utils/Util.js';
 import { setEffectiveUserId as cacheEffectiveUserId } from '../utils/User.js';
 import { useSnackbar } from 'notistack';
 import { DefaultHeader } from './DefaultHeader.jsx';
@@ -98,7 +98,7 @@ const HomePage = () => {
 
         const updatedProfile = {
           ...profileWithoutId,
-          lastVisitDate: getTodaysDate(),
+          lastVisitDate: getTodaysDateUTC(),
         };
 
         // Persist lastVisitDate

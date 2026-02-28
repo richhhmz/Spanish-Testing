@@ -1,7 +1,7 @@
 // backend/tools/Ping.js
 import { MessageSchema } from '../models/MessageModel.js';
 import { ProfileSchema } from '../models/ProfileModel.js';
-import { getTodaysDate } from './Util.js';
+import { getTodaysDateUTC } from './Util.js';
 import { sendPlainEmail } from './email.js';
 import { isDebug } from '../config.js';
 
@@ -38,7 +38,7 @@ export async function runPing(profilesDBConnection, appDBConnection) {
   const Profile = getProfileModel(profilesDBConnection);
 
   // Your existing "today" helper
-  const todayRaw = getTodaysDate(); // e.g. "2026-02-21"
+  const todayRaw = getTodaysDateUTC(); // e.g. "2026-02-21"
 
   // Normalize to yyyy/mm/dd for subject + search key
   const todayYyyyMmDd = todayRaw.replace(/-/g, '/');
@@ -69,7 +69,7 @@ export async function runPing(profilesDBConnection, appDBConnection) {
 
     const messageDoc = new Message({
       messageType: 'ping', // ping
-      messageDateAndTime: `${todayYyyyMmDd} ${timePart}`, // yyyy/mm/dd HH:MM:SS
+      messageDateAndTime: now.toISOString(), // sortable, ISO-safe
       messageFrom: '', // blank as requested
       messageTo: '',   // blank as requested
       subject,

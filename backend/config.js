@@ -29,6 +29,7 @@ export const englishTestingName = '_english_test';
 
 export const defaultTestsPerDay = 20;
 export const defaultLastTestDate = '1947-04-01';
+export const defaultLastTestTime = '00:00:00';
 export const defaultPreviousTestDate = '1947-04-01';
 export const defaultLastMessageReadDate = '1947-04-01';
 

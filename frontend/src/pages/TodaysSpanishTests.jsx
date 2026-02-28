@@ -5,6 +5,7 @@ import { useSnackbar } from 'notistack';
 import TodaysSpanishTestsHtml from '../components/htmlComponents/TodaysSpanishTestsHtml.jsx';
 import { homeIfNotToday } from '../utils/Util.js';
 import { setEffectiveUserId } from '../utils/User.js';
+import { getTodaysDate, getTimeNow } from '../utils/Util.js';
 import { isDebug } from '../globals.js';
 import { BackLog } from '../utils/BackLog.js';
 
@@ -42,7 +43,17 @@ export const TodaysSpanishTests = () => {
         setEffectiveUserId(whoRes.data.effectiveUserId);
 
         // 2️⃣ Fetch tests using AxiosClient + relative URL
-        const response = await axios.get('/api/spanish/todaysSpanishTests');
+        const today = getTodaysDate();
+        const timeNow = getTimeNow();
+        const response = await axios.get(
+          '/api/spanish/todaysSpanishTests',
+          {
+            params: {
+              today,
+              timeNow
+            }
+          }
+        );
 
         setTodaysTestsData(response.data.data);
       } catch (error) {

@@ -1,9 +1,9 @@
 import { WordSchema } from '../models/SpanishWordModel.js'
 import { TestSchema } from '../models/SpanishTestModel.js'
 import { getProfile, updateProfile } from '../tools/UserProfile.js';
-import { defaultLastTestDate, defaultPreviousTestDate, spanishTestingName } from '../config.js';
+import { defaultLastTestDate, defaultLastTestTime, defaultPreviousTestDate, spanishTestingName } from '../config.js';
 import { getAllSpanishWords } from '../tools/Words.js';
-import { getTodaysDate } from './Util.js'
+import { getTodaysDateUTC } from './Util.js';
 import sanitizeHtml from "sanitize-html";
 
 export const getAllSpanishWordTests = async (userId, spanishWords, profilesDBConnection, spanishTestsDBConnection) => {
@@ -17,6 +17,7 @@ export const getAllSpanishWordTests = async (userId, spanishWords, profilesDBCon
                     word: wordDoc.word,
                     rank: wordDoc.rank,
                     lastTestDate: defaultLastTestDate,
+                    lastTestTime: defaultLastTestTime,
                     previousTestDate: defaultPreviousTestDate,
                     averageDaysBetweenTests: averageDaysBetweenTests,
                     numberOfTrials: 0,
@@ -38,14 +39,14 @@ export const getAllSpanishWordTests = async (userId, spanishWords, profilesDBCon
     return wordTestDocs;
 }
 
-export const getTodaysSpanishTests = async (userId, profilesDBConnection, spanishWordsDBConnection, spanishTestsDBConnection) => {
+export const getTodaysSpanishTests = async (userId, todaysDate, localTime, profilesDBConnection, spanishWordsDBConnection, spanishTestsDBConnection) => {
     const profile = await getProfile(userId, profilesDBConnection);
     const spanishWordModel = spanishWordsDBConnection.model("Word", WordSchema);
     const spanishTestModel = spanishTestsDBConnection.model(userId + spanishTestingName, TestSchema);
     const allSpanishWords = await getAllSpanishWords(spanishWordsDBConnection);
 
     var todaysTests = [];
-    const todaysSpanishTests = await spanishTestModel.find({lastTestDate: getTodaysDate()});
+    const todaysSpanishTests = await spanishTestModel.find({lastTestDate: todaysDate});
     if (todaysSpanishTests.length > 0) {
         // We've already presented today's tests at least once, so list them again.
         for (var i = 0; i < todaysSpanishTests.length; i++) {
@@ -73,7 +74,7 @@ export const getTodaysSpanishTests = async (userId, profilesDBConnection, spanis
             const wordTestDoc = allSpanishTests[i];
             const targetDays = wordTestDoc.testDoc.averageDaysBetweenTests;
             const dueTarget = targetDays * (1 + jitterFactor);
-            if (daysSince(wordTestDoc.testDoc.lastTestDate) >= dueTarget) {
+            if (daysSinceTest(todaysDate, wordTestDoc.testDoc.lastTestDate) >= dueTarget) {
                 todaysCandidates.push(wordTestDoc);
             }
         }
@@ -84,12 +85,13 @@ export const getTodaysSpanishTests = async (userId, profilesDBConnection, spanis
             }
             var todaysTest = todaysCandidates[i];
             todaysTest.testDoc.previousTestDate = todaysTest.testDoc.lastTestDate;
-            todaysTest.testDoc.lastTestDate = getTodaysDate();
+            todaysTest.testDoc.lastTestDate = todaysDate;
             todaysTest.testDoc.testCompleted = false;
             updateTest(todaysTest.wordDoc.word, userId, spanishWordsDBConnection, spanishTestsDBConnection, todaysTest);
             todaysTests.push(todaysTest);
         }
-        profile.lastTestDate = getTodaysDate();
+        profile.lastTestDate = todaysDate;
+        profile.lastTestTime = localTime;
         updateProfile(userId, profilesDBConnection, profile)
     }
     todaysTests.sort((a, b) =>
@@ -149,9 +151,9 @@ export const updateTest = async (word, userId, spanishWordsDBConnection, spanish
     return updatedTestDoc;
 }
 
-export const daysSince = (date) => {
-    const last = new Date(date);
-    const today = new Date();
+export const daysSinceTest = (todaysDate, testDate) => {
+    const last = new Date(testDate);
+    const today = new Date(todaysDate);
     const msPerDay = 1000 * 60 * 60 * 24;
     return Math.floor((today - last) / msPerDay);
 }
