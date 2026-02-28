@@ -1,7 +1,8 @@
 import { ProfileSchema } from '../models/ProfileModel.js';
-import { getTodaysDate } from './Util.js';
+import { getTodaysDateUTC } from './Util.js';
 import {
   defaultLastTestDate,
+  defaultLastTestTime,
   defaultLastMessageReadDate,
   defaultTestsPerDay,
 } from '../config.js';
@@ -32,8 +33,9 @@ export const getProfile = async (userId, profilesDBConnection) => {
       isAdmin: false,
       testsPerDay: defaultTestsPerDay,
       lastTestDate: defaultLastTestDate,
-      firstVisitDate: getTodaysDate(),
-      lastVisitDate: getTodaysDate(),
+      lastTestTime: defaultLastTestTime,
+      firstVisitDate: getTodaysDateUTC(),
+      lastVisitDate: getTodaysDateUTC(),
       lastMessagesReadDate: defaultLastMessageReadDate,
 
       // Make subscription state explicit for new users
@@ -66,16 +68,6 @@ export const updateProfile = async (userId, profilesDBConnection, updates) => {
     console.error('💥 Error updating the profile:', err);
     throw err;
   }
-};
-
-export const updateProfileLastTestDate = async (
-  userId,
-  profilesDBConnection
-) => {
-  const Profile = profilesDBConnection.model('Profile', ProfileSchema);
-  const profile = await Profile.findOne({ userId });
-  profile.lastTestDate = getTodaysDate();
-  await profile.save();
 };
 
 export const profileCount = async (profilesDBConnection) => {

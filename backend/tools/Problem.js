@@ -18,8 +18,7 @@ export async function runProblem(appDBConnection, {
   // Save message to DB
   const doc = new Message({
     messageType: 'problem',
-    messageDateAndTime: now,
-    messageFrom: userEmail,
+    messageDateAndTime: now.toISOString(), // sortable, ISO-safeil,
     messageTo: 'progspanlrn@gmail.com',
     subject: subject,
     message: message,
