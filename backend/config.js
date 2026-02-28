@@ -44,6 +44,6 @@ export const SENDGRID_EMAIL_FROM = process.env.SENDGRID_EMAIL_FROM;
 
 export const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN;
 
-export const isProd = false;
+export const isProd = true;
 export const PORT = isProd?'':8080;
 
