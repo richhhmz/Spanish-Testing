@@ -21,54 +21,38 @@ import {
   appDBURL,
 } from './config.js';
 
-/* ───────────────────────── Global error handlers ───────────────────────── */
-process.on('unhandledRejection', (reason) => {
-  console.error('[UNHANDLED REJECTION]', reason);
-});
-
-process.on('uncaughtException', (err) => {
-  console.error('[UNCAUGHT EXCEPTION]', err);
-  // Let Cloud Run see the crash, but with a clear log
-  process.exit(1);
-});
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-console.log('[BOOT-0] index.js starting');
-
 const app = express();
 
-/* ───────────────────────── Proxy / Cloud Run ───────────────────────── */
+/* ───────────────────────────── Proxy / Cloud Run ───────────────────────────── */
 // Required so secure cookies + req.ip work correctly behind Cloud Run
 app.set('trust proxy', 1);
 
-/* ───────────────────────── Static Frontend Path ───────────────────────── */
+/* ───────────────────────────── Static Frontend Path ───────────────────────────── */
 const frontendDistPath = path.join(__dirname, 'frontend-dist');
 const folderExists = fs.existsSync(frontendDistPath);
 
-/* ───────────────────────── Diagnostics ───────────────────────── */
-console.log('[BOOT-1] index.js loaded');
+/* ───────────────────────────── Diagnostics ───────────────────────────── */
+console.log('[BOOT] index.js loaded');
 console.log(`[Server] Environment: ${isProd ? 'Production' : 'Development'}`);
 console.log(`[Server] Static path: ${frontendDistPath}`);
 console.log(`[Server] Static folder exists: ${folderExists}`);
-console.log(`[Server] Using PORT=${PORT}`);
 
 if (!folderExists) {
   try {
     console.error(
-      `[Server] ❌ frontend-dist missing. Current dir contains: ${fs
-        .readdirSync(__dirname)
-        .join(', ')}`
+      `[Server] ❌ frontend-dist missing. Current dir contains: ${fs.readdirSync(__dirname).join(', ')}`
     );
   } catch (err) {
     console.error('[Server] ❌ Could not inspect directory:', err);
   }
 }
 
-/* ───────────────────────── CORS ───────────────────────── */
+/* ───────────────────────────── CORS ───────────────────────────── */
+// If frontend + backend share same origin in production, this is still safe.
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN;
-console.log('[BOOT-2] FRONTEND_ORIGIN =', FRONTEND_ORIGIN);
 
 app.use(
   cors({
@@ -76,21 +60,20 @@ app.use(
     credentials: true,
   })
 );
-
-/* ───────────────────────── DB Connections ───────────────────────── */
-console.log('[BOOT-3] Creating Mongo connections');
-
+/* ───────────────────────────── DB Connections ───────────────────────────── */
 const profilesDBConnection = mongoose.createConnection(profilesDBURL);
 const spanishWordsDBConnection = mongoose.createConnection(spanishWordsDBURL);
 const spanishTestsDBConnection = mongoose.createConnection(spanishTestsDBURL);
 const appDBConnection = mongoose.createConnection(appDBURL);
 
+// Optional connection logging
 for (const [name, conn] of [
   ['profilesDB', profilesDBConnection],
   ['spanishWordsDB', spanishWordsDBConnection],
   ['spanishTestsDB', spanishTestsDBConnection],
   ['appDB', appDBConnection],
 ]) {
+  // conn.on('connected', () => console.log(`[DB] ✅ Connected: ${name}`));
   conn.on('error', (err) => console.error(`[DB] ❌ Error (${name}):`, err));
 }
 
@@ -99,40 +82,29 @@ app.locals.spanishWordsDB = spanishWordsDBConnection;
 app.locals.spanishTestsDB = spanishTestsDBConnection;
 app.locals.messagesDB = appDBConnection;
 
-console.log('[BOOT-4] Mongo connections created (async connect in background)');
-
 app.use(cookieParser());
 
-/* ───────────────────────── Billing Router ───────────────────────── */
-console.log('[BOOT-5] Creating billing router');
-
+/* ───────────────────────────── Billing Router ───────────────────────────── */
+/* MUST come before express.json if using Stripe raw body */
 const billingRouter = createBillingRouter(profilesDBConnection);
 app.use('/api/billing', billingRouter);
 
-console.log('[BOOT-6] Billing router mounted');
-
-/* ───────────────────────── Parsers ───────────────────────── */
+/* ───────────────────────────── Parsers ───────────────────────────── */
 app.use(express.json());
 
-/* ───────────────────────── Magic Link Routes ───────────────────────── */
-console.log('[BOOT-7] Creating magic link routes');
-
+/* ───────────────────────────── Magic Link Routes ───────────────────────────── */
+/* Mounted at root because /auth/login is in TestingRoute */
 app.use('/', createMagicLinkRoute(appDBConnection, profilesDBConnection));
 
-console.log('[BOOT-8] Magic link routes mounted');
-
-/* ───────────────────────── Static Frontend ───────────────────────── */
+/* ───────────────────────────── Static Frontend ───────────────────────────── */
 if (folderExists) {
-  console.log('[BOOT-9] Mounting static frontend');
   app.use(express.static(frontendDistPath));
 }
 
-/* ───────────────────────── Health Check ───────────────────────── */
+/* ───────────────────────────── Health Check ───────────────────────────── */
 app.get('/healthz', (req, res) => res.status(200).send('ok'));
 
-/* ───────────────────────── Main Routes ───────────────────────── */
-console.log('[BOOT-10] Mounting testsRoute');
-
+/* ───────────────────────────── Main Routes ───────────────────────────── */
 app.use(
   '/',
   testsRoute(
@@ -143,9 +115,7 @@ app.use(
   )
 );
 
-console.log('[BOOT-11] testsRoute mounted');
-
-/* ───────────────────────── SPA Fallback ───────────────────────── */
+/* ───────────────────────────── SPA Fallback ───────────────────────────── */
 if (folderExists) {
   app.get('*', (req, res) => {
     if (req.path.includes('.')) {
@@ -169,9 +139,9 @@ if (folderExists) {
   });
 }
 
-/* ───────────────────────── Listen ───────────────────────── */
-console.log(`[BOOT-12] About to listen on PORT=${PORT}`);
+/* ───────────────────────────── Listen ───────────────────────────── */
+console.log(`[BOOT] about to listen on PORT=${PORT}`);
 
 app.listen(PORT, () => {
-  console.log(`🚀 [BOOT-13] Server listening on port ${PORT}`);
+  console.log(`🚀 Server listening on port ${PORT}`);
 });
