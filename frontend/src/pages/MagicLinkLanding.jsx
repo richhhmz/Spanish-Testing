@@ -23,7 +23,7 @@ export default function MagicLinkLanding() {
     let cancelled = false;
 
     async function redeem() {
-      if(isDebug)BackLog(`[MagicLinkLanding] redeem() begin`);
+      if (isDebug) BackLog('[MagicLinkLanding] redeem() begin');
       if (!token) {
         setWorking(false);
         setStatus('Missing token in URL.');
@@ -39,34 +39,33 @@ export default function MagicLinkLanding() {
 
         if (cancelled) return;
 
-        // 🔍 NEW: Immediately test /auth/effective-user to see if cookies are working
+        // Immediately test /auth/effective-user to see if cookies are working (optional debug)
         try {
-          const res = await axios.get('/auth/effective-user'); // NEW
-          if (isDebug) { // NEW
+          const res = await axios.get('/auth/effective-user');
+          if (isDebug) {
             BackLog(
-              `[MagicLinkLanding] /auth/effective-user after redeem OK: ` +
+              '[MagicLinkLanding] /auth/effective-user after redeem OK: ' +
               JSON.stringify(res.data)
             );
           }
         } catch (err2) {
-          if (isDebug) { // NEW
+          if (isDebug) {
             BackLog(
-              `[MagicLinkLanding] /auth/effective-user after redeem FAILED: ` +
+              '[MagicLinkLanding] /auth/effective-user after redeem FAILED: ' +
               `${err2?.response?.status} ` +
               JSON.stringify(err2?.response?.data || {})
             );
           }
         }
 
-        // enqueueSnackbar('Signed in!', { variant: 'success' }); Was happening even if auth-failed
-        if (isDebug)BackLog(`[MagicLinkLanding] redeem() end`);
+        if (isDebug) BackLog('[MagicLinkLanding] redeem() end');
 
-        // ⏱️ NEW: tiny delay to ensure cookies are fully committed
+        // Tiny delay to ensure cookies are committed, then go home
         setTimeout(() => {
           if (!cancelled) {
             navigate('/', { replace: true });
           }
-        }, 300); // NEW
+        }, 300);
       } catch (err) {
         console.error('magic redeem failed:', err);
 
