@@ -4,7 +4,9 @@ import { isDebug, isProd } from '../globals.js';
 import { BackLog } from '../utils/BackLog';
 
 const AxiosClient = axios.create({
-  origin: isProd?'https://progspanlrn.com':'http://localhost:8080',
+  baseURL: isProd
+    ? 'https://progspanlrn.com'
+    : 'http://localhost:8080',
   withCredentials: true,
 });
 
