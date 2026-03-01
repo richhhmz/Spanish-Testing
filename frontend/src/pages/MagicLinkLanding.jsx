@@ -39,9 +39,34 @@ export default function MagicLinkLanding() {
 
         if (cancelled) return;
 
+        // 🔍 NEW: Immediately test /auth/effective-user to see if cookies are working
+        try {
+          const res = await axios.get('/auth/effective-user'); // NEW
+          if (isDebug) { // NEW
+            BackLog(
+              `[MagicLinkLanding] /auth/effective-user after redeem OK: ` +
+              JSON.stringify(res.data)
+            );
+          }
+        } catch (err2) {
+          if (isDebug) { // NEW
+            BackLog(
+              `[MagicLinkLanding] /auth/effective-user after redeem FAILED: ` +
+              `${err2?.response?.status} ` +
+              JSON.stringify(err2?.response?.data || {})
+            );
+          }
+        }
+
         // enqueueSnackbar('Signed in!', { variant: 'success' }); Was happening even if auth-failed
-        if(isDebug)BackLog(`[MagicLinkLanding] redeem() end`);
-        navigate('/', { replace: true });
+        if (isDebug)BackLog(`[MagicLinkLanding] redeem() end`);
+
+        // ⏱️ NEW: tiny delay to ensure cookies are fully committed
+        setTimeout(() => {
+          if (!cancelled) {
+            navigate('/', { replace: true });
+          }
+        }, 300); // NEW
       } catch (err) {
         console.error('magic redeem failed:', err);
 

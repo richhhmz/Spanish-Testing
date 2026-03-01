@@ -104,6 +104,18 @@ if (folderExists) {
 /* ───────────────────────────── Health Check ───────────────────────────── */
 app.get('/healthz', (req, res) => res.status(200).send('ok'));
 
+/* ───────────────────────────── Cookie Debug ───────────────────────────── */
+// Simple debug route to test cookie setting
+app.get('/debug/set-cookie', (req, res) => {
+  res.cookie('debugCookie', 'hello123', {
+    httpOnly: false,       // so you can see it easily in DevTools / JS
+    secure: false,         // IMPORTANT: allow on http://localhost
+    sameSite: 'lax',
+    path: '/',
+  });
+
+  res.send('Debug cookie set');
+});
 /* ───────────────────────────── Main Routes ───────────────────────────── */
 app.use(
   '/',

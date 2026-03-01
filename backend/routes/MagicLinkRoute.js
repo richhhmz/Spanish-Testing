@@ -139,7 +139,20 @@ export default function createMagicLinkRoute(appDBConnection, profilesDBConnecti
         maxAge: 7 * 24 * 60 * 60 * 1000 
       });
 
-      if(isDebug)console.log(`[/magic/redeem] /magic/redeem end`);
+      // 🔍 DEBUG: add a visible, non-httpOnly cookie so we can see
+      res.cookie('debugFromRedeem', 'yes', {          // DEBUG
+        httpOnly: false,                              // DEBUG
+        secure: false,                                // DEBUG
+        sameSite: 'lax',                              // DEBUG
+        path: '/',                                    // DEBUG
+      });                                             // DEBUG
+
+      // 🔍 DEBUG: log headers that Express is about to send
+      if (isDebug) {                                  // DEBUG
+        console.log('[/magic/redeem] headers about to send:', res.getHeaders());
+      }                                               // DEBUG
+
+      if (isDebug) console.log(`[/magic/redeem] /magic/redeem end`);
 
       return res.json({ ok: true });
     } catch (err) {

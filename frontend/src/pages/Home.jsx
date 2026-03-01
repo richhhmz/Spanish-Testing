@@ -27,12 +27,6 @@ const HomePage = () => {
   const [subscriptionStatus, setSubscriptionStatus] = useState('none');
   const [subscriptionPlan, setSubscriptionPlan] = useState('');
 
-  // Admin subscription control panel state
-  // 🔒 IMPORTANT: starts empty and is NEVER auto-filled from effectiveUserId
-  const [subTargetUserId, setSubTargetUserId] = useState('');
-  const [subStatus, setSubStatus] = useState('none');
-  const [subPlan, setSubPlan] = useState('');
-
   const { enqueueSnackbar } = useSnackbar();
   const navigate = useNavigate();
 
@@ -200,32 +194,6 @@ const HomePage = () => {
     }
   };
 
-  /* ---------------------------------------------------------
-     Admin: update subscription for an arbitrary user
-     --------------------------------------------------------- */
-  const handleAdminUpdateSubscription = async () => {
-    const target = subTargetUserId.trim();
-    if (!target) return;
-
-    try {
-      await axios.post('/admin/set-subscription', {
-        targetUserId: target,
-        status: subStatus,
-        plan: subPlan || undefined,
-      });
-
-      enqueueSnackbar('Subscription updated', { variant: 'success' });
-    } catch (err) {
-      console.error(err);
-      enqueueSnackbar(
-        err.response?.data?.error || 'Failed to update subscription',
-        { variant: 'error' }
-      );
-    }
-  };
-
-  /* --------------------------------------------------------- */
-
   if (loading) {
     return <div className="p-8 text-center text-gray-600">Loading…</div>;
   }
@@ -293,75 +261,6 @@ const HomePage = () => {
               Go
             </button>
           </form>
-        </div>
-      )}
-
-      {/* ADMIN SUBSCRIPTION CONTROL PANEL */}
-      {isAdmin && (
-        <div className="w-full max-w-md bg-blue-50 border border-blue-200 rounded-xl mb-6 p-4">
-          <h3 className="text-lg font-semibold mb-3">
-            Subscription Control (Admin)
-          </h3>
-
-          <div className="mb-3 text-sm text-gray-700">
-            Set subscription for a specific user.
-          </div>
-
-          {/* TARGET USER ID — starts EMPTY and is never auto-filled */}
-          <div className="mb-3">
-            <label className="block text-sm font-medium mb-1">
-              Target User ID
-            </label>
-            <input
-              type="text"
-              value={subTargetUserId}
-              onChange={(e) => setSubTargetUserId(e.target.value)}
-              placeholder="e.g. sparky"
-              className="w-full px-3 py-2 border rounded-md"
-            />
-          </div>
-
-          {/* STATUS */}
-          <div className="mb-3">
-            <label className="block text-sm font-medium mb-1">Status</label>
-            <select
-              value={subStatus}
-              onChange={(e) => setSubStatus(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md"
-            >
-              <option value="none">none</option>
-              <option value="active">active</option>
-              <option value="canceled">canceled</option>
-              <option value="past_due">past_due</option>
-            </select>
-          </div>
-
-          {/* PLAN */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">
-              Plan (optional)
-            </label>
-            <input
-              type="text"
-              value={subPlan}
-              onChange={(e) => setSubPlan(e.target.value)}
-              placeholder="e.g. monthly"
-              className="w-full px-3 py-2 border rounded-md"
-            />
-          </div>
-
-          {/* ACTION BUTTON */}
-          <button
-            disabled={!subTargetUserId.trim()}
-            onClick={handleAdminUpdateSubscription}
-            className={`w-full px-4 py-2 rounded text-white ${
-              subTargetUserId.trim()
-                ? 'bg-blue-600 hover:bg-blue-700'
-                : 'bg-gray-400 cursor-not-allowed'
-            }`}
-          >
-            Update subscription
-          </button>
         </div>
       )}
 
