@@ -1,5 +1,5 @@
-import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import axios from '../api/AxiosClient';
 
 export const DefaultHeader = () => {
   const navigate = useNavigate();
@@ -7,16 +7,12 @@ export const DefaultHeader = () => {
 
   const isHomePage = location.pathname === '/';
 
-  const handleLogout = () => {
-    // Remove the actual token your Login.jsx checks
-    localStorage.removeItem('authToken');
-
-    // Optional cleanup (safe even if unused)
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    sessionStorage.removeItem('token');
-    localStorage.removeItem('effectiveUserId');
-    localStorage.removeItem('realUserId');
+  const handleLogout = async () => {
+    try {
+      await axios.post('/auth/logout', null, { withCredentials: true });
+    } catch (err) {
+      console.error('[handleLogout] logout request failed:', err);
+    }
 
     navigate('/login', { replace: true });
   };
@@ -24,7 +20,7 @@ export const DefaultHeader = () => {
   return (
     <div className="w-full mt-4 mb-4">
       <div className="ml-[0.25in] flex items-center gap-x-3">
-        
+
         {/* Home button (hidden when already on '/') */}
         {!isHomePage && (
           <Link

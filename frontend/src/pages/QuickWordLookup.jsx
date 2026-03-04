@@ -3,7 +3,7 @@ import Spinner from '../components/Spinner.jsx';
 import axios from '../api/AxiosClient';
 import { useSnackbar } from 'notistack';
 import QuickWordLookupHtml from '../components/htmlComponents/QuickWordLookupHtml.jsx';
-import { homeIfNotToday } from '../utils/Util.js';
+import { newDay } from '../utils/Util.js';
 
 export const QuickWordLookup = () => {
   const [loading, setLoading] = useState(true);
@@ -16,9 +16,9 @@ export const QuickWordLookup = () => {
   useEffect(() => {
     const runGuard = async () => {
       try {
-        await homeIfNotToday();
+        await newDay();
       } catch (err) {
-        console.error('homeIfNotToday failed:', err);
+        console.error('newDay failed:', err);
       }
     };
     runGuard();

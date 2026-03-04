@@ -3,7 +3,7 @@ import Spinner from '../components/Spinner.jsx';
 import axios from '../api/AxiosClient';
 import { useSnackbar } from 'notistack';
 import SpanishTestListHtml from '../components/htmlComponents/SpanishTestListHtml.jsx';
-import { homeIfNotToday } from '../utils/Util.js';
+import { newDay } from '../utils/Util.js';
 import { setEffectiveUserId, setRealUserId } from '../utils/User.js';
 
 export const SpanishTestList = () => {
@@ -25,7 +25,7 @@ export const SpanishTestList = () => {
         if (whoRes?.data?.effectiveUserId) setEffectiveUserId(whoRes.data.effectiveUserId);
 
         // 2) Enforce daily Home visit AFTER identity is set
-        await homeIfNotToday();
+        await newDay();
 
         // 3) Load data using AxiosClient (relative URL, not localhost absolute)
         enqueueSnackbar('Loading All Tests...', {

@@ -3,7 +3,7 @@ import Spinner from '../components/Spinner.jsx';
 import axios from '../api/AxiosClient';
 import { useSnackbar } from 'notistack';
 import TodaysSpanishTestsHtml from '../components/htmlComponents/TodaysSpanishTestsHtml.jsx';
-import { homeIfNotToday } from '../utils/Util.js';
+import { newDay } from '../utils/Util.js';
 import { setEffectiveUserId } from '../utils/User.js';
 import { getTodaysDate, getTimeNow } from '../utils/Util.js';
 import { isDebug } from '../globals.js';
@@ -19,7 +19,7 @@ export const TodaysSpanishTests = () => {
   useEffect(() => {
     const runGuard = async () => {
       if (isDebug) BackLog("Checking if not today.");
-      newDay = await homeIfNotToday(enqueueSnackbar);
+      newDay = await newDay(enqueueSnackbar);
       if (newDay) {
         if (isDebug) BackLog("New day detected — terminating effects");
         return; // 🛑 STOP HERE

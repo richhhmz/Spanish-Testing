@@ -504,6 +504,32 @@ const createTestsRouter = (
     }
   });
 
+  // ✅ Logout: clear auth cookies
+  router.post('/auth/logout', (req, res) => {
+    try {
+      if (isDebug) console.log('[/auth/logout] clearing auth cookies');
+
+      res.clearCookie('token', {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: 'lax',
+        path: '/',
+      });
+
+      res.clearCookie('refreshToken', {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: 'lax',
+        path: '/',
+      });
+
+      return res.status(200).json({ ok: true });
+    } catch (err) {
+      console.error('[/auth/logout] error:', err);
+      return res.status(500).json({ error: 'Logout failed' });
+    }
+  });
+
   router.get('/auth/email-confirm/:token', async (req, res) => {
     try {
       const attempt = await LoginAttempt.findOne({

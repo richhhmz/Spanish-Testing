@@ -3,7 +3,7 @@ import Spinner from '../components/Spinner.jsx';
 import axios from '../api/AxiosClient';
 import { useSnackbar } from 'notistack';
 import MessageListHtml from '../components/htmlComponents/MessageListHtml.jsx';
-import { homeIfNotToday } from '../utils/Util.js';
+import { newDay } from '../utils/Util.js';
 import { setEffectiveUserId, setRealUserId } from '../utils/User.js';
 
 export const MessageList = () => {
@@ -27,7 +27,7 @@ export const MessageList = () => {
         }
 
         // 2) Enforce daily Home visit AFTER identity is set
-        await homeIfNotToday();
+        await newDay();
 
         // 3) Load messages
         enqueueSnackbar('Loading Messages...', {

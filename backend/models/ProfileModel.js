@@ -101,7 +101,31 @@ export const ProfileSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    firstVisitTime: {
+      type: String,
+      required: true,
+    },
     lastVisitDate: {
+      type: String,
+      required: true,
+    },
+    lastVisitTime: {
+      type: String,
+      required: true,
+    },
+    firstVisitDateUTC: {
+      type: String,
+      required: true,
+    },
+    firstVisitTimeUTC: {
+      type: String,
+      required: true,
+    },
+    lastVisitDateUTC: {
+      type: String,
+      required: true,
+    },
+    lastVisitTimeUTC: {
       type: String,
       required: true,
     },

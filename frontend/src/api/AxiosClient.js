@@ -1,7 +1,7 @@
 // frontend/src/api/AxiosClient.js
 import axios from 'axios';
 import { isDebug, isProd } from '../globals.js';
-import { BackLog } from '../utils/BackLog';
+import { BackLog } from '../utils/BackLog.js';
 
 const AxiosClient = axios.create({
   baseURL: isProd

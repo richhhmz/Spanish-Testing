@@ -3,7 +3,7 @@ import Spinner from '../components/Spinner';
 import axios from '../api/AxiosClient';
 import { useParams } from 'react-router-dom';
 import ViewSpanishTestHtml from '../components/htmlComponents/ViewSpanishTestHtml.jsx';
-import { homeIfNotToday } from '../utils/Util.js';
+import { newDay } from '../utils/Util.js';
 import { setEffectiveUserId } from '../utils/User.js';
 
 export const ViewSpanishTest = () => {
@@ -15,7 +15,7 @@ export const ViewSpanishTest = () => {
   // Enforce daily Home visit
   useEffect(() => {
     const runGuard = async () => {
-      await homeIfNotToday();
+      await newDay();
     };
     runGuard();
   }, []);

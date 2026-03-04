@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from '../api/AxiosClient';
-import { getTodaysDateUTC } from '../utils/Util.js';
+import { getTodaysDate, getTodaysTime, getTodaysDateUTC, getTodaysTimeUTC } from '../utils/Util.js';
 import { setEffectiveUserId as cacheEffectiveUserId } from '../utils/User.js';
 import { useSnackbar } from 'notistack';
 import { DefaultHeader } from './DefaultHeader.jsx';
@@ -92,10 +92,13 @@ const HomePage = () => {
 
         const updatedProfile = {
           ...profileWithoutId,
-          lastVisitDate: getTodaysDateUTC(),
+          lastVisitDate: getTodaysDate(),
+          lastVisitTime: getTodaysTime(),
+          lastVisitDateUTC: getTodaysDateUTC(),
+          lastVisitTimeUTC: getTodaysTimeUTC(),
         };
 
-        // Persist lastVisitDate
+        // Persist lastVisitDates
         await axios.put('/api/spanish/updateProfile', updatedProfile);
         setProfileData(updatedProfile);
 

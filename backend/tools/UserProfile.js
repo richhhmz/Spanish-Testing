@@ -1,11 +1,12 @@
 import { ProfileSchema } from '../models/ProfileModel.js';
-import { getTodaysDateUTC } from './Util.js';
+import { getTodaysDateUTC, getTodaysTimeUTC } from './Util.js';
 import {
   defaultLastTestDate,
   defaultLastTestTime,
   defaultLastMessageReadDate,
   defaultTestsPerDay,
 } from '../config.js';
+import { getTodaysDate } from '../../frontend/src/utils/Util.js';
 
 /**
  * Internal helper: ensure a profile document always has a
@@ -34,8 +35,14 @@ export const getProfile = async (userId, profilesDBConnection) => {
       testsPerDay: defaultTestsPerDay,
       lastTestDate: defaultLastTestDate,
       lastTestTime: defaultLastTestTime,
-      firstVisitDate: getTodaysDateUTC(),
-      lastVisitDate: getTodaysDateUTC(),
+      firstVisitDate: getTodaysDate(),
+      firstVisitTime: getTodaysTime(),
+      lastVisitDate: getTodaysDate(),
+      lastVisitTime: getTodaysTime(),
+      firstVisitDateUTC: getTodaysDateUTC(),
+      firstVisitTimeUTC: getTodaysTimeUTC(),
+      lastVisitDateUTC: getTodaysDateUTC(),
+      lastVisitTimeUTC: getTodaysTimeUTC(),
       lastMessagesReadDate: defaultLastMessageReadDate,
 
       // Make subscription state explicit for new users

@@ -3,7 +3,7 @@ import Spinner from '../components/Spinner.jsx';
 import axios from '../api/AxiosClient';
 import { useSnackbar } from 'notistack';
 import TranslationSearchHtml from '../components/htmlComponents/TranslationSearchHtml.jsx';
-import { homeIfNotToday } from '../utils/Util.js';
+import { newDay } from '../utils/Util.js';
 
 export const TranslationSearch = () => {
   const [loading, setLoading] = useState(false);
@@ -11,7 +11,7 @@ export const TranslationSearch = () => {
   const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
-    homeIfNotToday();
+    newDay();
   }, []);
 
   useEffect(() => {

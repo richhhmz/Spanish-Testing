@@ -1,34 +1,35 @@
 import axios from '../api/AxiosClient.js';
 import { isDebug } from '../globals.js';
 import { BackLog } from './BackLog.js';
-var newDay = false;
+var isANewDay = false;
 
-export const homeIfNotToday = async (enqueueSnackbar) => {
+export const newDay = async (enqueueSnackbar) => {
   try {
-    if(isDebug)BackLog("[homeIfNotToday] is checking if day changed");
+    if(isDebug)BackLog("[newDay] is checking if day changed");
     const response = await axios.get('/api/spanish/getProfile');
     const profile = response.data?.data;
-    if (!profile || !profile.lastTestDate) {
-      if(isDebug)BackLog("[homeIfNotToday] missing profile or profile.lastTestDate");
+    if (!profile || !profile.lastVisitDate) {
+      if(isDebug)BackLog("[newDay] missing profile or profile.lastVisitDate");
       return;
     }
     const today = getTodaysDate();
-    if(isDebug)BackLog(`[homeIfNotToday] profile.lastTestDate=${profile.lastTestDate}, today=${today}`);
+    if(isDebug)BackLog(`[newDay] profile.lastVisitDate=${profile.lastVisitDate}, today=${today}`);
 
-    if (profile.lastTestDate !== today) {
-      if(isDebug)BackLog("[homeIfNotToday] The day since the last test has changed. Calling /ping");
+    if (profile.lastVisitDate !== today) {
+      if(isDebug)BackLog("[newDay] The day since the last visit has changed. Calling /ping");
       try {
         // 🔔 Trigger backend daily ping (safe if multiple users call it)
-        if(isDebug)BackLog("[homeIfNotToday] before ping");
+        if(isDebug)BackLog("[newDay] before ping");
         await axios.get('/ping');
-        if(isDebug)BackLog("[homeIfNotToday] after ping");
+        if(isDebug)BackLog("[newDay] after ping");
       } catch (err) {
-        console.error('[homeIfNotToday] /ping failed:', err);
+        console.error('[newDay] /ping failed:', err);
       }
     }
 
-    if (profile.lastTestDate !== today) {
-      if(isDebug)BackLog("[homeIfNotToday] The test day has changed. Going home");
+    if (profile.lastVisitDate !== today) {
+      if(isDebug)BackLog("[newDay] The test day has changed. Going home");
+      if(isDebug)BackLog(`[newDay] lastVisitDate=${profile.lastVisitDate}, today=${today}`);
 
       enqueueSnackbar(
         'Resetting for a new day',
@@ -39,12 +40,12 @@ export const homeIfNotToday = async (enqueueSnackbar) => {
         window.location.href = '/';
       }, 5000);
 
-      newDay = true;
+      isANewDay = true;
     }
 
-    return newDay;
+    return isANewDay;
   } catch (error) {
-    console.error('homeIfNotToday failed:', error);
+    console.error('newDay failed:', error);
     // fail silently — do not block navigation
   }
 };
@@ -76,6 +77,16 @@ export const getTodaysDate = () => {
   return todayStr;
 };
 
+export const getTodaysTime = () => {
+  const now = new Date();
+
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+
+  return `${hours}:${minutes}:${seconds}`;
+};
+
 export const getTodaysDateUTC = () => {
     const today = new Date();
 
@@ -84,6 +95,16 @@ export const getTodaysDateUTC = () => {
     const day   = String(today.getUTCDate()).padStart(2, '0');
 
     return `${year}-${month}-${day}`;
+};
+
+export const getTodaysTimeUTC = () => {
+    const now = new Date();
+
+    const hours   = String(now.getUTCHours()).padStart(2, '0');
+    const minutes = String(now.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(now.getUTCSeconds()).padStart(2, '0');
+
+    return `${hours}:${minutes}:${seconds}`;
 };
 
 export const getTimeNow = () => {
