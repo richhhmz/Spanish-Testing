@@ -118,6 +118,8 @@ export default function createMagicLinkRoute(appDBConnection, profilesDBConnecti
       const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
 
       const isProd = process.env.NODE_ENV === 'production';
+      if(isDebug)console.log(`[/magic/redeem] isProd=${isProd}`);
+
 
       const cookieOptions = {
         httpOnly: true,
