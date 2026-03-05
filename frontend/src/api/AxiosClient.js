@@ -41,9 +41,17 @@ AxiosClient.interceptors.response.use(
     // Don't loop forever
     if (original._retry) return Promise.reject(err);
 
+    // ✅ Special-case: while on /magic, do NOT refresh or redirect on 401.
+    // Reason: during magic-link redeem, you are expected to be unauthenticated briefly.
+    // A background 401 (e.g. BackLog) would otherwise redirect and abort /magic/redeem.
+    if (err.response?.status === 401 && window.location.pathname === '/magic') {
+      if (isDebug) console.warn('[AxiosClient] 401 on /magic — skipping refresh/redirect for:', original.url);
+      return Promise.reject(err);
+    }
+
     // Never retry refresh itself
     if (original.url === '/auth/refresh') {
-      if(isDebug)console.warn('⛔ Refresh failed — redirecting to /login');
+      if (isDebug) console.warn('⛔ Refresh failed — redirecting to /login');
       window.location.replace('/login?reason=session-expired');
       return new Promise(() => {}); // hard stop
     }
