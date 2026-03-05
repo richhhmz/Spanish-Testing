@@ -7,6 +7,19 @@ export const DefaultFooter = () => {
     <div>
       <footer className="ml-1 text-sm mb-10">
 
+        {/* Video tutorial */}
+        <p>
+          View the tutorial video{' '}
+          <a
+            href="https://youtu.be/3yqNRygKRH8"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-blue-600"
+          >
+            here
+          </a>.
+        </p>
+        
         {/* Report problem line */}
         <p>
           Report a problem{' '}

@@ -7,6 +7,7 @@ import { setEffectiveUserId as cacheEffectiveUserId } from '../utils/User.js';
 import { useSnackbar } from 'notistack';
 import { DefaultHeader } from './DefaultHeader.jsx';
 import { DefaultFooter } from './DefaultFooter.jsx';
+import { newDay } from '../utils/Util.js';
 import { isDebug } from '../globals.js';
 import { BackLog } from '../utils/BackLog';
 
@@ -98,6 +99,9 @@ const HomePage = () => {
           lastVisitTimeUTC: getTodaysTimeUTC(),
         };
 
+        // Check if day changed
+        await newDay();
+        
         // Persist lastVisitDates
         await axios.put('/api/spanish/updateProfile', updatedProfile);
         setProfileData(updatedProfile);
