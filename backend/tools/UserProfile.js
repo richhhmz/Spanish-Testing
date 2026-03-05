@@ -7,6 +7,7 @@ import {
   defaultTestsPerDay,
 } from '../config.js';
 import { getTodaysDate } from '../../frontend/src/utils/Util.js';
+import { getTodaysTime } from '../../frontend/src/utils/Util.js';
 
 /**
  * Internal helper: ensure a profile document always has a
