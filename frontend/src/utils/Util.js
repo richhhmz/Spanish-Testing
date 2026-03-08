@@ -5,7 +5,6 @@ var isANewDay = false;
 
 export const newDay = async (enqueueSnackbar) => {
   try {
-    if(isDebug)BackLog("[newDay] is checking if day changed");
     const response = await axios.get('/api/spanish/getProfile');
     const profile = response.data?.data;
     if (!profile || !profile.lastVisitDate) {
@@ -13,10 +12,10 @@ export const newDay = async (enqueueSnackbar) => {
       return;
     }
     const today = getTodaysDate();
-    if(isDebug)BackLog(`[newDay] profile.lastVisitDate=${profile.lastVisitDate}, today=${today}`);
 
     if (profile.lastVisitDate !== today) {
       if(isDebug)BackLog("[newDay] The day since the last visit has changed. Calling /ping");
+      if(isDebug)BackLog(`[newDay] profile.lastVisitDate=${profile.lastVisitDate}, today=${today}`);
       try {
         // 🔔 Trigger backend daily ping (safe if multiple users call it)
         if(isDebug)BackLog("[newDay] before ping");
