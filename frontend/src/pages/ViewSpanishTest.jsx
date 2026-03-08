@@ -5,17 +5,20 @@ import { useParams } from 'react-router-dom';
 import ViewSpanishTestHtml from '../components/htmlComponents/ViewSpanishTestHtml.jsx';
 import { newDay } from '../utils/Util.js';
 import { setEffectiveUserId } from '../utils/User.js';
+import { useSnackbar } from 'notistack';
 
 export const ViewSpanishTest = () => {
   const { word, source } = useParams();
+  const { enqueueSnackbar } = useSnackbar();
 
   const [loading, setLoading] = useState(false);
   const [viewSpanishTestData, setViewSpanishTestData] = useState(null);
+  
 
   // Enforce daily Home visit
   useEffect(() => {
     const runGuard = async () => {
-      await newDay();
+      await newDay(enqueueSnackbar);
     };
     runGuard();
   }, []);

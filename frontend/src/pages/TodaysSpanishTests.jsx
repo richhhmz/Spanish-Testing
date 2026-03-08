@@ -13,26 +13,14 @@ export const TodaysSpanishTests = () => {
   const [loading, setLoading] = useState(false);
   const [todaysTestsData, setTodaysTestsData] = useState(null);
   const { enqueueSnackbar } = useSnackbar();
-  var newDay = false;
-
-  // Enforce daily Home visit
-  useEffect(() => {
-    const runGuard = async () => {
-      if (isDebug) BackLog("Checking if not today.");
-      newDay = await newDay(enqueueSnackbar);
-      if (newDay) {
-        if (isDebug) BackLog("New day detected — terminating effects");
-        return; // 🛑 STOP HERE
-      }
-      if (isDebug) BackLog("End today check");
-    };
-    runGuard();
-  }, []);
 
   useEffect(() => {
     const initAndFetchTests = async () => {
       setLoading(true);
       try {
+        // Enforce daily Home visit
+        await newDay(enqueueSnackbar);
+        
         enqueueSnackbar("Loading Today's Tests...", {
           variant: "info",
           autoHideDuration: 2000,
@@ -64,6 +52,14 @@ export const TodaysSpanishTests = () => {
     };
 
     initAndFetchTests();
+    
+    // ✅ check for new day every minute
+    const interval = setInterval(() => {
+      newDay(enqueueSnackbar);
+    }, 60000);
+
+    return () => clearInterval(interval);
+
   }, [enqueueSnackbar]);
 
   return (

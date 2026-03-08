@@ -11,7 +11,7 @@ export const TranslationSearch = () => {
   const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
-    newDay();
+    newDay(enqueueSnackbar);
   }, []);
 
   useEffect(() => {

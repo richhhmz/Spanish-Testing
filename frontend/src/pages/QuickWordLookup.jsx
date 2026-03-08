@@ -16,7 +16,7 @@ export const QuickWordLookup = () => {
   useEffect(() => {
     const runGuard = async () => {
       try {
-        await newDay();
+        await newDay(enqueueSnackbar);
       } catch (err) {
         console.error('newDay failed:', err);
       }

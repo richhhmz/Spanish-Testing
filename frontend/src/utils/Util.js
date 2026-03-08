@@ -31,16 +31,19 @@ export const newDay = async (enqueueSnackbar) => {
       if(isDebug)BackLog("[newDay] The test day has changed. Going home");
       if(isDebug)BackLog(`[newDay] lastVisitDate=${profile.lastVisitDate}, today=${today}`);
 
-      enqueueSnackbar(
-        'Resetting for a new day',
-        { variant: 'info', autoHideDuration: 5000 }
-      );
+      if (enqueueSnackbar) {
+        enqueueSnackbar('Resetting for a new day', {
+          variant: 'info',
+          autoHideDuration: 5000,
+        });
+      }
 
       setTimeout(() => {
         window.location.href = '/';
       }, 5000);
 
       isANewDay = true;
+      if(isDebug)BackLog(`[newDay] We should have rerouted to /`);
     }
 
     return isANewDay;

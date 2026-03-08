@@ -1,6 +1,7 @@
 // backend/tools/Ping.js
 import { MessageSchema } from '../models/MessageModel.js';
-import { ProfileSchema } from '../models/ProfileModel.js';
+import { countActiveProfiles } from './UserProfile.js';
+import { systemNewDay } from './SystemStatus.js';
 import { getTodaysDateUTC } from './Util.js';
 import { sendPlainEmail } from './email.js';
 import { isDebug } from '../config.js';
@@ -16,80 +17,60 @@ function getMessageModel(messagesDBConnection) {
 }
 
 /**
- * Helper to bind the Profile model to the profiles DB connection.
- */
-function getProfileModel(profilesDBConnection) {
-  return (
-    profilesDBConnection.models.Profile ||
-    profilesDBConnection.model('Profile', ProfileSchema)
-  );
-}
-
-/**
  * Run the daily ping:
  * - compute active subscription profiles
- * - if today's ping not yet logged, insert a "ping" message + send email
+ * - check SystemStatus to see if this is a new UTC day
+ * - if new day, insert a "ping" message + send email
  * - return the counts
  */
 export async function runPing(profilesDBConnection, appDBConnection) {
-  if(isDebug)console.log("[runPing] begin");
+  if (isDebug) console.log('[runPing] begin');
 
   const Message = getMessageModel(appDBConnection);
-  const Profile = getProfileModel(profilesDBConnection);
 
-  // Your existing "today" helper
   const todayRaw = getTodaysDateUTC(); // e.g. "2026-02-21"
-
-  // Normalize to yyyy/mm/dd for subject + search key
   const todayYyyyMmDd = todayRaw.replace(/-/g, '/');
 
-  // Check if there is already a ping message for today's date.
-  // messageDateAndTime is a date+time string, so we just match on the date prefix.
-  const existingPing = await Message.findOne({
-    messageType: 'ping',
-    messageDateAndTime: { $regex: `^${todayYyyyMmDd}` },
-  });
+  if (isDebug) console.log(`[runPing] today is ${todayYyyyMmDd}`);
 
-  // Active subscription profiles
-  const activeProfiles = await Profile.countDocuments({
-    'subscription.status': 'active',
-  });
+  const isNewDay = await systemNewDay(todayRaw, appDBConnection);
+  if (isDebug) console.log(`[runPing] isNewDay=${isNewDay}`);
 
-  // Only insert a new message + email if we haven't logged today's ping yet
-  if (!existingPing) {
+  const activeProfiles = await countActiveProfiles(profilesDBConnection);
+
+  if (isNewDay) {
     const now = new Date();
-    const timePart = now.toTimeString().split(' ')[0]; // "HH:MM:SS"
     const subject = `ping for ${todayYyyyMmDd}`;
-    if(isDebug)console.log("[runPing] before get payloadJson");
+
+    if (isDebug) console.log('[runPing] before get payloadJson');
     const payloadJson = JSON.stringify({
-      activeProfiles, // JSON format: { "activeProfiles": <number> }
+      activeProfiles,
     });
-    if(isDebug)console.log("[runPing] after get payloadJson");
-    if(isDebug)console.log(`[runPing] payloadJson=${payloadJson}`);
+    if (isDebug) console.log('[runPing] after get payloadJson');
+    if (isDebug) console.log(`[runPing] payloadJson=${payloadJson}`);
 
     const messageDoc = new Message({
-      messageType: 'ping', // ping
-      messageDateAndTime: now.toISOString(), // sortable, ISO-safe
-      messageFrom: '', // blank as requested
-      messageTo: '',   // blank as requested
+      messageType: 'ping',
+      messageDateAndTime: now.toISOString(),
+      messageFrom: '',
+      messageTo: '',
       subject,
       message: payloadJson,
     });
 
     await messageDoc.save();
 
-    // Send email to progspanlrn@gmail.com
-    if(isDebug)console.log("[runPing] before sending email");
+    if (isDebug) console.log('[runPing] before sending email');
     await sendPlainEmail({
       to: 'progspanlrn@gmail.com',
       subject: 'ping',
       message: payloadJson,
     });
-    if(isDebug)console.log("[runPing] after sending email")
-    if(isDebug)console.log("[runPing] end")
+    if (isDebug) console.log('[runPing] after sending email');
   }
 
-  // /ping route can just res.json(result) where result is this object
+  if (isDebug) console.log('[runPing] end');
+
   return {
     activeProfiles,
   };

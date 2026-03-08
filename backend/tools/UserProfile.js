@@ -78,10 +78,24 @@ export const updateProfile = async (userId, profilesDBConnection, updates) => {
   }
 };
 
-export const profileCount = async (profilesDBConnection) => {
+export const getActiveProfiles = async (profilesDBConnection) => {
   const profileModel = profilesDBConnection.model('Profile', ProfileSchema);
-  const count = await profileModel.countDocuments({});
-  return count;
+
+  const activeProfiles = await profileModel.find({
+    'subscription.status': 'active',
+  });
+
+  return activeProfiles;
+};
+
+export const countActiveProfiles = async (profilesDBConnection) => {
+  const profileModel = profilesDBConnection.model('Profile', ProfileSchema);
+
+  const activeProfilesCount = await profileModel.countDocuments({
+    'subscription.status': 'active',
+  });
+
+  return activeProfilesCount;
 };
 
 /**

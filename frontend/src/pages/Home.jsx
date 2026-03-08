@@ -100,7 +100,7 @@ const HomePage = () => {
         };
 
         // Check if day changed
-        await newDay();
+        await newDay(enqueueSnackbar);
         
         // Persist lastVisitDates
         await axios.put('/api/spanish/updateProfile', updatedProfile);
