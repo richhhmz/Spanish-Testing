@@ -85,31 +85,22 @@ const HomePage = () => {
     const fetchProfile = async () => {
       setLoading(true);
       try {
-        const res = await axios.get('/api/spanish/getProfile');
-        const profile = res.data.data;
 
-        // Strip Mongo IDs on the client
-        const { _id, __v, ...profileWithoutId } = profile;
-
-        const updatedProfile = {
-          ...profileWithoutId,
-          lastVisitDate: getTodaysDate(),
-          lastVisitTime: getTodaysTime(),
-          lastVisitDateUTC: getTodaysDateUTC(),
-          lastVisitTimeUTC: getTodaysTimeUTC(),
-        };
-        
-        // Persist lastVisitDates
-        await axios.put('/api/spanish/updateProfile', updatedProfile);
-        setProfileData(updatedProfile);
-
+        if(isDebug)BackLog("[Home] before newDay");
         // Check if day changed
         await newDay(enqueueSnackbar);
+        if(isDebug)BackLog("[Home] after newDay");
+
+        const res = await axios.get('/api/spanish/getProfile');
+        const profile = res.data.data;
+        setProfileData(profile);
+        if(isDebug)BackLog(`[Home] after getProfile`);
 
         // Subscription info (with backwards compatibility)
         const sub = profile.subscription || { status: 'none' };
         setSubscriptionStatus(sub.status || 'none');
         setSubscriptionPlan(sub.plan || '');
+        if(isDebug)BackLog(`[Home] after subscription processing`);
       } catch (err) {
         console.error(err);
         alert('Error loading profile');

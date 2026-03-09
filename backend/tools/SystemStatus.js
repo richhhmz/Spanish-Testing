@@ -11,6 +11,24 @@ function getSystemStatusModel(appDBConnection) {
 }
 
 /**
+ * Get the SystemStatus document.
+ * Creates one if it does not exist yet.
+ */
+export async function getSystemStatus(appDBConnection) {
+  const SystemStatus = getSystemStatusModel(appDBConnection);
+
+  let status = await SystemStatus.findOne();
+
+  if (!status) {
+    status = await SystemStatus.create({
+      lastRecordedDateUTC: null,
+    });
+  }
+
+  return status;
+}
+
+/**
  * Determine if the system has moved to a new UTC day.
  *
  * @param {string} dateUTC - Date in YYYY-MM-DD format (UTC)
@@ -21,15 +39,12 @@ function getSystemStatusModel(appDBConnection) {
  *   false -> same day as already recorded
  */
 export async function systemNewDay(dateUTC, appDBConnection) {
-  const SystemStatus = getSystemStatusModel(appDBConnection);
+  const status = await getSystemStatus(appDBConnection);
 
-  let status = await SystemStatus.findOne();
-
-  // If no document exists yet, create it
-  if (!status) {
-    await SystemStatus.create({
-      lastRecordedDateUTC: dateUTC,
-    });
+  // First run (no date recorded yet)
+  if (!status.lastRecordedDateUTC) {
+    status.lastRecordedDateUTC = dateUTC;
+    await status.save();
     return true;
   }
 

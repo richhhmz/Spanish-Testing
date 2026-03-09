@@ -18,17 +18,29 @@ export const newDay = async (enqueueSnackbar) => {
       if(isDebug)BackLog(`[newDay] profile.lastVisitDate=${profile.lastVisitDate}, today=${today}`);
       try {
         // 🔔 Trigger backend daily ping (safe if multiple users call it)
-        if(isDebug)BackLog("[newDay] before ping");
+        if (isDebug) BackLog("[newDay] before ping");
         await axios.get('/ping');
-        if(isDebug)BackLog("[newDay] after ping");
+        if (isDebug) BackLog("[newDay] after ping");
       } catch (err) {
         console.error('[newDay] /ping failed:', err);
       }
-    }
 
-    if (profile.lastVisitDate !== today) {
-      if(isDebug)BackLog("[newDay] The test day has changed. Going home");
-      if(isDebug)BackLog(`[newDay] lastVisitDate=${profile.lastVisitDate}, today=${today}`);
+      if (isDebug) BackLog("[newDay] The test day has changed. Going home");
+      if (isDebug) BackLog(`[newDay] lastVisitDate=${profile.lastVisitDate}, today=${today}`);
+
+      // Strip Mongo IDs on the client
+      const { _id, __v, ...profileWithoutId } = profile;
+
+      const updatedProfile = {
+        ...profileWithoutId,
+        lastVisitDate: getTodaysDate(),
+        lastVisitTime: getTodaysTime(),
+        lastVisitDateUTC: getTodaysDateUTC(),
+        lastVisitTimeUTC: getTodaysTimeUTC(),
+      };
+
+      // Persist lastVisitDates
+      await axios.put('/api/spanish/updateProfile', updatedProfile);
 
       if (enqueueSnackbar) {
         enqueueSnackbar('Resetting for a new day', {
@@ -42,7 +54,7 @@ export const newDay = async (enqueueSnackbar) => {
       }, 5000);
 
       isANewDay = true;
-      if(isDebug)BackLog(`[newDay] We should have rerouted to /`);
+      if (isDebug) BackLog(`[newDay] We should have rerouted to /`);
     }
 
     return isANewDay;

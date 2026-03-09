@@ -5,6 +5,7 @@ import {
   updateProfile,
   setSubscriptionInfo,
 } from '../tools/UserProfile.js';
+import { getSystemStatus } from '../tools/SystemStatus.js';
 import { getAllSpanishWords, updateWord } from '../tools/Words.js';
 import { getMessages, addMessage, deleteMessage } from '../tools/Messages.js';
 import {
@@ -260,11 +261,24 @@ const createTestsRouter = (
   router.get('/api/spanish/getProfile', requireAuth, effectiveUserMiddleware, async (req, res) => {
     try {
       const userId = req.effectiveUserId;
+      if(isDebug)console.log(`[/api/spanish/getProfile'] before getProfile`)
       const profile = await getProfile(userId, profilesDBConnection);
+      if(isDebug)console.log(`[/api/spanish/getProfile'] after getProfile`)
+      // if(isDebug)console.log(`[/api/spanish/getProfile'] profile=${JSON.stringify(profile,null,2)}`);
       res.json({ data: profile });
     } catch (err) {
-      console.error(err);
+      console.log(`[/api/spanish/getProfile'] getProfile error`);
       res.status(500).json({ error: 'Failed to load profile' });
+    }
+  });
+
+  router.get('/api/spanish/getSystemStatus', requireAuth, effectiveUserMiddleware, async (req, res) => {
+    try {
+      const systemStatus = await getSystemStatus(appDBConnection);
+      res.json({ data: systemStatus });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to load system status' });
     }
   });
 
