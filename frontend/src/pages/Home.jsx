@@ -98,13 +98,13 @@ const HomePage = () => {
           lastVisitDateUTC: getTodaysDateUTC(),
           lastVisitTimeUTC: getTodaysTimeUTC(),
         };
-
-        // Check if day changed
-        await newDay(enqueueSnackbar);
         
         // Persist lastVisitDates
         await axios.put('/api/spanish/updateProfile', updatedProfile);
         setProfileData(updatedProfile);
+
+        // Check if day changed
+        await newDay(enqueueSnackbar);
 
         // Subscription info (with backwards compatibility)
         const sub = profile.subscription || { status: 'none' };
