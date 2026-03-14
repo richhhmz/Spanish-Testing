@@ -86,21 +86,21 @@ const HomePage = () => {
       setLoading(true);
       try {
 
-        if(isDebug)BackLog("[Home] before newDay");
+        if (isDebug) BackLog("[Home] before newDay");
         // Check if day changed
         await newDay(enqueueSnackbar);
-        if(isDebug)BackLog("[Home] after newDay");
+        if (isDebug) BackLog("[Home] after newDay");
 
         const res = await axios.get('/api/spanish/getProfile');
         const profile = res.data.data;
         setProfileData(profile);
-        if(isDebug)BackLog(`[Home] after getProfile`);
+        if (isDebug) BackLog(`[Home] after getProfile`);
 
         // Subscription info (with backwards compatibility)
         const sub = profile.subscription || { status: 'none' };
         setSubscriptionStatus(sub.status || 'none');
         setSubscriptionPlan(sub.plan || '');
-        if(isDebug)BackLog(`[Home] after subscription processing`);
+        if (isDebug) BackLog(`[Home] after subscription processing`);
       } catch (err) {
         console.error(err);
         alert('Error loading profile');
@@ -110,6 +110,12 @@ const HomePage = () => {
     };
 
     fetchProfile();
+
+    // ✅ check for new day every minute
+    const interval = setInterval(() => {
+      newDay(enqueueSnackbar);
+    }, 60000);
+
   }, [effectiveUserId]);
 
   /* ---------------------------------------------------------
