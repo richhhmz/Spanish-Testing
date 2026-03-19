@@ -25,7 +25,7 @@ export const SpanishTestList = () => {
         if (whoRes?.data?.effectiveUserId) setEffectiveUserId(whoRes.data.effectiveUserId);
 
         // 2) Enforce daily Home visit AFTER identity is set
-        await newDay(enqueueSnackbar);
+        await newDay(true, enqueueSnackbar);
 
         // 3) Load data using AxiosClient (relative URL, not localhost absolute)
         enqueueSnackbar('Loading All Tests...', {

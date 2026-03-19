@@ -19,7 +19,7 @@ export const TodaysSpanishTests = () => {
       setLoading(true);
       try {
         // Enforce daily Home visit
-        await newDay(enqueueSnackbar);
+        await newDay(true, enqueueSnackbar);
         
         enqueueSnackbar("Loading Today's Tests...", {
           variant: "info",
@@ -55,7 +55,7 @@ export const TodaysSpanishTests = () => {
     
     // ✅ check for new day every minute
     const interval = setInterval(() => {
-      newDay(enqueueSnackbar);
+      newDay(true, enqueueSnackbar);
     }, 60000);
 
     return () => clearInterval(interval);

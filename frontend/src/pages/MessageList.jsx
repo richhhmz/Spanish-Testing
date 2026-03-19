@@ -27,7 +27,7 @@ export const MessageList = () => {
         }
 
         // 2) Enforce daily Home visit AFTER identity is set
-        await newDay(enqueueSnackbar);
+        await newDay(true, enqueueSnackbar);
 
         // 3) Load messages
         enqueueSnackbar('Loading Messages...', {

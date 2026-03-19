@@ -18,7 +18,7 @@ export const ViewSpanishTest = () => {
   // Enforce daily Home visit
   useEffect(() => {
     const runGuard = async () => {
-      await newDay(enqueueSnackbar);
+      await newDay(true, enqueueSnackbar);
     };
     runGuard();
   }, []);

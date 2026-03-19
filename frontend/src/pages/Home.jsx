@@ -88,7 +88,7 @@ const HomePage = () => {
 
         if (isDebug) BackLog("[Home] before newDay");
         // Check if day changed
-        await newDay(enqueueSnackbar);
+        await newDay(false, enqueueSnackbar);
         if (isDebug) BackLog("[Home] after newDay");
 
         const res = await axios.get('/api/spanish/getProfile');
@@ -113,7 +113,7 @@ const HomePage = () => {
 
     // ✅ check for new day every minute
     const interval = setInterval(() => {
-      newDay(enqueueSnackbar);
+      newDay(true, enqueueSnackbar);
     }, 60000);
 
   }, [effectiveUserId]);

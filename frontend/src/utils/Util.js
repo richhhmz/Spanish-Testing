@@ -3,7 +3,7 @@ import { isDebug } from '../globals.js';
 import { BackLog } from './BackLog.js';
 var isANewDay = false;
 
-export const newDay = async (enqueueSnackbar) => {
+export const newDay = async (reload, enqueueSnackbar) => {
   try {
     const response = await axios.get('/api/spanish/getProfile');
     const profile = response.data?.data;
@@ -49,9 +49,11 @@ export const newDay = async (enqueueSnackbar) => {
         });
       }
 
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 5000);
+      if (reload) {
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 5000);
+      }
 
       isANewDay = true;
       if (isDebug) BackLog(`[newDay] We should have rerouted to /`);
