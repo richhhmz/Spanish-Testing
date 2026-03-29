@@ -237,7 +237,12 @@ const createBillingRouter = (profilesDBConnection) => {
 
         return res.json({ url: portalSession.url });
       } catch (err) {
-        console.error('❌ Error creating customer portal session:', err);
+        console.error('❌ Error creating customer portal session:', {
+          message: err.message,
+          type: err.type,
+          code: err.code,
+          raw: err.raw,
+        });
         return res.status(500).json({
           error: 'Failed to create customer portal',
         });

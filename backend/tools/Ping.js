@@ -1,6 +1,6 @@
 // backend/tools/Ping.js
 import { MessageSchema } from '../models/MessageModel.js';
-import { countActiveProfiles } from './UserProfile.js';
+import { countActiveProfiles, countActiveTrials } from './UserProfile.js';
 import { systemNewDay } from './SystemStatus.js';
 import { getTodaysDateUTC } from './Util.js';
 import { sendPlainEmail } from './email.js';
@@ -36,15 +36,18 @@ export async function runPing(profilesDBConnection, appDBConnection) {
   const isNewDay = await systemNewDay(todayRaw, appDBConnection);
   if (isDebug) console.log(`[runPing] isNewDay=${isNewDay}`);
 
-  const activeProfiles = await countActiveProfiles(profilesDBConnection);
+  const activeSubscriptions = await countActiveProfiles(profilesDBConnection);
+  const activeTrials = await countActiveTrials(profilesDBConnection);
+  var payloadJson = '';
 
   if (isNewDay) {
     const now = new Date();
     const subject = `ping for ${todayYyyyMmDd}`;
 
     if (isDebug) console.log('[runPing] before get payloadJson');
-    const payloadJson = JSON.stringify({
-      activeProfiles,
+    payloadJson = JSON.stringify({
+      activeSubscriptions,
+      activeTrials,
     });
     if (isDebug) console.log('[runPing] after get payloadJson');
     if (isDebug) console.log(`[runPing] payloadJson=${payloadJson}`);
@@ -69,9 +72,10 @@ export async function runPing(profilesDBConnection, appDBConnection) {
     if (isDebug) console.log('[runPing] after sending email');
   }
 
-  if (isDebug) console.log('[runPing] end');
+  if (isDebug) console.log(`[runPing] end, payloadJson=${payloadJson}`);
 
-  return {
-    activeProfiles,
-  };
+  return JSON.stringify({
+      activeSubscriptions,
+      activeTrials,
+    })
 }

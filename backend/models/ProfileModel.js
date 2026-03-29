@@ -133,7 +133,14 @@ export const ProfileSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-
+    trialActive: {
+      type: Boolean,
+      default: false,
+    },
+    trialStartDate: {
+      type: String,
+      required: false,
+    },
     impersonation: {
       type: ImpersonationSchema,
       default: () => ({ active: false }),

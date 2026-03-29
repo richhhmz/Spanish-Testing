@@ -27,9 +27,14 @@ const HomePage = () => {
   // Subscription state (for the effective user)
   const [subscriptionStatus, setSubscriptionStatus] = useState('none');
   const [subscriptionPlan, setSubscriptionPlan] = useState('');
+  const [trialActive, setTrialActive] = useState(false);
+  const [trialExpired, setTrialExpired] = useState(false);
 
   const { enqueueSnackbar } = useSnackbar();
   const navigate = useNavigate();
+
+  const [showTrialPopup, setShowTrialPopup] = useState(false);
+  const [daysRemaining, setDaysRemaining] = useState(0);
 
   /* ---------------------------------------------------------
      STEP 1: Ask backend who we are (authoritative)
@@ -101,6 +106,26 @@ const HomePage = () => {
         setSubscriptionStatus(sub.status || 'none');
         setSubscriptionPlan(sub.plan || '');
         if (isDebug) BackLog(`[Home] after subscription processing`);
+
+        if (profile.trialStartDate) {
+          const today = new Date();
+          const startDate = new Date(profile.trialStartDate);
+
+          const diffInMs = today - startDate;
+          const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+          if (diffInDays < 30) {
+            setTrialActive(true);
+
+            const remaining = 30 - diffInDays;
+            setDaysRemaining(remaining);
+
+            // trigger popup
+            setShowTrialPopup(true);
+          } else {
+            setTrialExpired(true);
+          }
+        }
       } catch (err) {
         console.error(err);
         alert('Error loading profile');
@@ -173,7 +198,34 @@ const HomePage = () => {
     }
   };
 
-  /* ---------------------------------------------------------
+  const handleTrialClick = async () => {
+    try {
+      // 1. Get today's date in yyyy-mm-dd
+      const today = new Date().toISOString().slice(0, 10);
+
+      // 2. Send update to backend
+      const res = await axios.put('/api/spanish/updateProfile', {
+        trialStartDate: today,
+        trialActive: true
+      });
+
+      // 3. Update local state (important for UI refresh)
+      if (res.data?.data) {
+        setProfileData(res.data.data);
+      } else {
+        // fallback: manually update local state
+        setProfileData(prev => ({
+          ...prev,
+          trialStartDate: today,
+        }));
+      }
+      window.location.href = '/';
+    } catch (err) {
+      console.error('❌ Failed to start trial:', err);
+    }
+  };
+
+/* ---------------------------------------------------------
      Billing: Manage subscription (Stripe Customer Portal)
      --------------------------------------------------------- */
   const handleManageSubscriptionClick = async () => {
@@ -209,11 +261,12 @@ const HomePage = () => {
 
   // Non-admin users must have an active subscription to see the menu
   const hasActiveSub = subscriptionStatus === 'active';
-  const canSeeMenu = isAdmin || hasActiveSub;
+  const canSeeMenu = isAdmin || hasActiveSub || trialActive;
 
   // Only show Manage Subscription when it’s likely to work
   // (i.e., they’re active OR they’re admin for testing)
   const showManageSubscription = hasActiveSub || isAdmin;
+  BackLog(`trialActive=${trialActive}, trialExpired=${trialExpired}`);
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center p-8">
@@ -268,12 +321,8 @@ const HomePage = () => {
         </div>
       )}
 
-      {/* SUBSCRIBE CTA
-          - For non-admins, or for admins who are IMPERSONATING
-          - Hide if the (effective) user already has an active subscription
-      */}
-      {(!isAdmin || impersonating) && !hasActiveSub && (
-        <div className="w-full max-w-2xl mb-8">
+      {!isAdmin && !impersonating && !hasActiveSub && trialExpired && (
+        <div className="w-full max-w-2xl">
           <button
             onClick={handleSubscribeClick}
             className="w-full py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700"
@@ -283,8 +332,18 @@ const HomePage = () => {
         </div>
       )}
 
-      {/* If user is not subscribed and not admin, hide the menu */}
-      {!canSeeMenu && (
+      {!isAdmin && !impersonating && !hasActiveSub && !trialActive && !trialExpired && (
+        <div className="w-full max-w-2xl mb-8 text-center">
+          <button
+            onClick={handleTrialClick}
+            className="w-full py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700"
+          >
+            Start your 30 day free trial
+          </button>
+        </div>
+      )}
+
+      {!canSeeMenu && trialExpired && (
         <div className="w-full max-w-md bg-white border border-gray-200 rounded-xl p-4 mb-8 text-center text-gray-700">
           You don&apos;t have an active subscription yet.
           <br />
@@ -357,8 +416,29 @@ const HomePage = () => {
         </nav>
       )}
 
+
       <DefaultFooter />
+
+      {showTrialPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 text-center">
+
+            <div className="text-lg font-semibold text-gray-800 mb-4">
+              Your trial expires in {daysRemaining} day{daysRemaining !== 1 ? 's' : ''}.
+            </div>
+
+            <button
+              onClick={() => setShowTrialPopup(false)}
+              className="mt-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              OK
+            </button>
+
+          </div>
+        </div>
+      )}
     </div>
+
   );
 };
 

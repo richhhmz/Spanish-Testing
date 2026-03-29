@@ -98,6 +98,16 @@ export const countActiveProfiles = async (profilesDBConnection) => {
   return activeProfilesCount;
 };
 
+export const countActiveTrials = async (profilesDBConnection) => {
+  const profileModel = profilesDBConnection.model('Profile', ProfileSchema);
+
+  const activeTrialsCount = await profileModel.countDocuments({
+    'trialActive': true,
+  });
+
+  return activeTrialsCount;
+};
+
 /**
  * Set subscription fields for a user.
  *
