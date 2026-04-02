@@ -142,12 +142,12 @@ export default function createMagicLinkRoute(appDBConnection, profilesDBConnecti
       });
 
       // 🔍 DEBUG: add a visible, non-httpOnly cookie so we can see
-      res.cookie('debugFromRedeem', 'yes', {          // DEBUG
-        httpOnly: false,                              // DEBUG
-        secure: false,                                // DEBUG
-        sameSite: 'lax',                              // DEBUG
-        path: '/',                                    // DEBUG
-      });                                             // DEBUG
+      // res.cookie('debugFromRedeem', 'yes', {          // DEBUG
+      //   httpOnly: false,                              // DEBUG
+      //   secure: false,                                // DEBUG
+      //   sameSite: 'lax',                              // DEBUG
+      //   path: '/',                                    // DEBUG
+      // });                                             // DEBUG
 
       // 🔍 DEBUG: log headers that Express is about to send
       if (isDebug) {                                  // DEBUG

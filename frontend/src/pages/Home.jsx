@@ -119,10 +119,12 @@ const HomePage = () => {
 
             const remaining = 30 - diffInDays;
             setDaysRemaining(remaining);
+            BackLog(`[Home] ${remaining} days left in trial`);
 
             // trigger popup
             setShowTrialPopup(true);
           } else {
+            BackLog("[Home] trial has expired");
             setTrialExpired(true);
           }
         }
@@ -261,12 +263,13 @@ const HomePage = () => {
 
   // Non-admin users must have an active subscription to see the menu
   const hasActiveSub = subscriptionStatus === 'active';
+  const hasCanceledSub = subscriptionStatus === 'canceled';
   const canSeeMenu = isAdmin || hasActiveSub || trialActive;
 
   // Only show Manage Subscription when it’s likely to work
   // (i.e., they’re active OR they’re admin for testing)
-  const showManageSubscription = hasActiveSub || isAdmin;
-  BackLog(`trialActive=${trialActive}, trialExpired=${trialExpired}`);
+  const showManageSubscription = hasActiveSub || hasCanceledSub || isAdmin;
+  BackLog(`[Home] trialActive=${trialActive}, trialExpired=${trialExpired}`);
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center p-8">
@@ -332,7 +335,7 @@ const HomePage = () => {
         </div>
       )}
 
-      {!isAdmin && !impersonating && !hasActiveSub && !trialActive && !trialExpired && (
+      {!isAdmin && !impersonating && !hasActiveSub && !hasCanceledSub && !trialActive && !trialExpired && (
         <div className="w-full max-w-2xl mb-8 text-center">
           <button
             onClick={handleTrialClick}

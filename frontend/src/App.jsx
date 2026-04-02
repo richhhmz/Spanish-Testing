@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
+import PartnerCapture from './utils/PartnerCapture';
 
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -22,31 +23,34 @@ import WaitingForEmail from './pages/WaitingForEmail.jsx';
 
 const App = () => {
   return (
-    <Routes>
+    <>
+      <PartnerCapture />
+      <Routes>
 
-      {/* PUBLIC */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/ping" element={<Ping />} />
-      <Route path="/backlog" element={<BackLog />} />
-      <Route path="/public" element={<Public />} />
-      <Route path="/waiting-for-email" element={<WaitingForEmail />} />
-      <Route path="/magic" element={<MagicLinkLanding />} />
+        {/* PUBLIC */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/ping" element={<Ping />} />
+        <Route path="/backlog" element={<BackLog />} />
+        <Route path="/public" element={<Public />} />
+        <Route path="/waiting-for-email" element={<WaitingForEmail />} />
+        <Route path="/magic" element={<MagicLinkLanding />} />
 
-      {/* PROTECTED */}
-      <Route element={<ProtectedRoute />}>
-        <Route path="/" element={<Home />} />
-        <Route path="/spanish/allSpanishTests" element={<SpanishTestList />} />
-        <Route path="/spanish/todaysSpanishTests" element={<TodaysSpanishTests />} />
-        <Route path="/messages" element={<MessageList />} />
-        <Route path="/spanish/quickWordLookup" element={<QuickWordLookup />} />
-        <Route path="/spanish/translationSearch" element={<TranslationSearch />} />
-        <Route path="/spanish/viewTest/:word/:source" element={<ViewSpanishTest />} />
-        <Route path="/spanish/editTest/:word/:source" element={<EditSpanishTest />} />
-        <Route path="/spanish/editProfile" element={<EditProfile />} />
-        <Route path="/resetCache" element={<ResetCache />} />
-        <Route path="/problem" element={<Problem />} />
-      </Route>
-    </Routes>
+        {/* PROTECTED */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/spanish/allSpanishTests" element={<SpanishTestList />} />
+          <Route path="/spanish/todaysSpanishTests" element={<TodaysSpanishTests />} />
+          <Route path="/messages" element={<MessageList />} />
+          <Route path="/spanish/quickWordLookup" element={<QuickWordLookup />} />
+          <Route path="/spanish/translationSearch" element={<TranslationSearch />} />
+          <Route path="/spanish/viewTest/:word/:source" element={<ViewSpanishTest />} />
+          <Route path="/spanish/editTest/:word/:source" element={<EditSpanishTest />} />
+          <Route path="/spanish/editProfile" element={<EditProfile />} />
+          <Route path="/resetCache" element={<ResetCache />} />
+          <Route path="/problem" element={<Problem />} />
+        </Route>
+      </Routes>
+    </>
   );
 };
 

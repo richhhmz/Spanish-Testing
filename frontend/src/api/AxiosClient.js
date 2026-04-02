@@ -52,7 +52,7 @@ AxiosClient.interceptors.response.use(
     // Never retry refresh itself
     if (original.url === '/auth/refresh') {
       if (isDebug) console.warn('⛔ Refresh failed — redirecting to /login');
-      window.location.replace('/login?reason=session-expired');
+      window.location.replace('/login');
       return new Promise(() => {}); // hard stop
     }
 
@@ -75,7 +75,7 @@ AxiosClient.interceptors.response.use(
         return AxiosClient(original);
       } catch (refreshErr) {
         resolveQueue(refreshErr);
-        window.location.replace('/login?reason=session-expired');
+        window.location.replace('/login');
         return new Promise(() => {}); // hard stop
       } finally {
         isRefreshing = false;
