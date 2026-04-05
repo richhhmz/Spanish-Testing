@@ -145,6 +145,14 @@ export const ProfileSchema = new mongoose.Schema(
       type: ImpersonationSchema,
       default: () => ({ active: false }),
     },
+    partnerName: {
+      type: String,
+      required: false,
+    },
+    isPartner: {
+      type: Boolean,
+      default: false,
+    },
 
     /**
      * Subscription / Stripe billing state.

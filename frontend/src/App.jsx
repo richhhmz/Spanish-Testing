@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import PartnerCapture from './utils/PartnerCapture';
+import SubscriptionPaymentsReport from './pages/SubscriptionPaymentsReport';
 
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -48,6 +49,7 @@ const App = () => {
           <Route path="/spanish/editProfile" element={<EditProfile />} />
           <Route path="/resetCache" element={<ResetCache />} />
           <Route path="/problem" element={<Problem />} />
+          <Route path="/subscription-payments-report" element={<SubscriptionPaymentsReport />} />
         </Route>
       </Routes>
     </>

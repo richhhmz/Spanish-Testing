@@ -11,6 +11,17 @@ import { newDay } from '../utils/Util.js';
 import { isDebug } from '../globals.js';
 import { BackLog } from '../utils/BackLog';
 
+const getCookie = (name) => {
+  const match = document.cookie.match(
+    new RegExp('(?:^|; )' + name.replace(/[.$?*|{}()[\]\\/+^]/g, '\\$&') + '=([^;]*)')
+  );
+  return match ? decodeURIComponent(match[1]) : null;
+};
+
+const deleteCookie = (name) => {
+  document.cookie = `${name}=; path=/; max-age=0; samesite=lax`;
+};
+
 const HomePage = () => {
   // Profile + auth state
   const [loading, setLoading] = useState(true);
@@ -99,7 +110,44 @@ const HomePage = () => {
         const res = await axios.get('/api/spanish/getProfile');
         const profile = res.data.data;
         setProfileData(profile);
+        
         if (isDebug) BackLog(`[Home] after getProfile`);
+
+        // ---------------------------------------------------------
+        // PARTNER CAPTURE → update profile once
+        // ---------------------------------------------------------
+        const partner = getCookie('partner');
+
+        if (partner) {
+          if (isDebug) BackLog(`[Home] found partner cookie: ${partner}`);
+
+          // Only set if not already set
+          if (!profile.partnerName) {
+            try {
+              if (isDebug) BackLog(`[Home] applying partner ${partner} to profile`);
+
+              await axios.put('/api/spanish/updateProfile', {
+                partnerName: partner,
+                isPartner: false,
+              });
+
+              // Update local state immediately
+              profile.partnerName = partner;
+              profile.isPartner = false;
+              setProfileData({ ...profile });
+
+              if (isDebug) BackLog(`[Home] partner applied successfully`);
+
+            } catch (err) {
+              console.error('[Home] failed to apply partner', err);
+            }
+          } else {
+            if (isDebug) BackLog(`[Home] skipping partner update (already set or real partner)`);
+          }
+
+          // Always delete cookie after processing
+          deleteCookie('partner');
+        }
 
         // Subscription info (with backwards compatibility)
         const sub = profile.subscription || { status: 'none' };
