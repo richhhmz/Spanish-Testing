@@ -153,6 +153,10 @@ export const ProfileSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    partnerPercent: {
+      type: Number,
+      required: false,
+    },
 
     /**
      * Subscription / Stripe billing state.

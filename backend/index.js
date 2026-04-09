@@ -10,6 +10,7 @@ import { fileURLToPath } from 'url';
 import testsRoute from './routes/TestingRoute.js';
 import createBillingRouter from './routes/BillingRoute.js';
 import createMagicLinkRoute from './routes/MagicLinkRoute.js';
+import stripeRoutes from './routes/StripeRoutes.js';
 import createSubscriptionPaymentsReportRouter from './routes/SubscriptionPaymentsReportRoute.js';
 import {
   PORT,
@@ -88,6 +89,9 @@ app.use(cookieParser());
 /* MUST come before express.json if using Stripe raw body */
 const billingRouter = createBillingRouter(profilesDBConnection);
 app.use('/api/billing', billingRouter);
+
+/* ───────────────────────────── Stripe Router ───────────────────────────── */
+app.use('/api/stripe', stripeRoutes);
 
 /* ───────────────────────────── Parsers ───────────────────────────── */
 app.use(express.json());

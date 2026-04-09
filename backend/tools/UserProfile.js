@@ -33,6 +33,8 @@ export const getProfile = async (userId, profilesDBConnection) => {
       userId: userId.trim(),
       userPreferredName: '',
       isAdmin: false,
+      isPartner: false,
+      partnerName: '',
       testsPerDay: defaultTestsPerDay,
       lastTestDate: defaultLastTestDate,
       lastTestTime: defaultLastTestTime,

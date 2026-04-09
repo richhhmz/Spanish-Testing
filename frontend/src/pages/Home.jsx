@@ -28,6 +28,7 @@ const HomePage = () => {
   const [profileData, setProfileData] = useState(null);
 
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isPartner, setIsPartner] = useState(false);
   const [impersonating, setImpersonating] = useState(false);
   const [realUserId, setRealUserId] = useState(null);
   const [effectiveUserId, setEffectiveUserIdState] = useState(null);
@@ -110,8 +111,10 @@ const HomePage = () => {
         const res = await axios.get('/api/spanish/getProfile');
         const profile = res.data.data;
         setProfileData(profile);
+        setIsPartner(profile.isPartner);
         
-        if (isDebug) BackLog(`[Home] after getProfile`);
+        // if(isDebug) BackLog(`[Home] profile=${JSON.stringify(profile,null,2)}`)
+        if(isDebug) BackLog(`[Home] after getProfile`);
 
         // ---------------------------------------------------------
         // PARTNER CAPTURE → update profile once
@@ -312,11 +315,12 @@ const HomePage = () => {
   // Non-admin users must have an active subscription to see the menu
   const hasActiveSub = subscriptionStatus === 'active';
   const hasCanceledSub = subscriptionStatus === 'canceled';
-  const canSeeMenu = isAdmin || hasActiveSub || trialActive;
+  const canSeeMenu = isAdmin || isPartner || hasActiveSub || trialActive;
 
   // Only show Manage Subscription when it’s likely to work
   // (i.e., they’re active OR they’re admin for testing)
-  const showManageSubscription = hasActiveSub || hasCanceledSub || isAdmin;
+  const showManageSubscription = hasActiveSub || hasCanceledSub;
+  BackLog(`[Home] isAdmin=${isAdmin}, isPartner=${isPartner}`);
   BackLog(`[Home] trialActive=${trialActive}, trialExpired=${trialExpired}`);
 
   return (
@@ -372,7 +376,7 @@ const HomePage = () => {
         </div>
       )}
 
-      {!isAdmin && !impersonating && !hasActiveSub && trialExpired && (
+      {!isAdmin && !isPartner && !impersonating && !hasActiveSub && trialExpired && (
         <div className="w-full max-w-2xl">
           <button
             onClick={handleSubscribeClick}
@@ -383,7 +387,7 @@ const HomePage = () => {
         </div>
       )}
 
-      {!isAdmin && !impersonating && !hasActiveSub && !hasCanceledSub && !trialActive && !trialExpired && (
+      {!isAdmin && !isPartner && !impersonating && !hasActiveSub && !hasCanceledSub && !trialActive && !trialExpired && (
         <div className="w-full max-w-2xl mb-8 text-center">
           <button
             onClick={handleTrialClick}
