@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import Stripe from 'stripe';
 import { appDBURL } from '../config.js';
 import { StripeSchema } from '../models/StripeDataModel.js';
+import { isDebug } from '../config.js';
 
 let appConnection;
 let StripeModel;
@@ -40,19 +41,22 @@ function unixToISO(unixSeconds) {
 
 function normalizeStripeInvoice(invoice) {
   const paidAtUnix = invoice?.status_transitions?.paid_at;
-  const createdUnix = invoice?.created;
 
-  const transactionDateAndTimeISO = paidAtUnix
-    ? unixToISO(paidAtUnix)
-    : unixToISO(createdUnix);
+  if (!paidAtUnix) return null;
+
+  const subscriptionId =
+    invoice.subscription ||
+    invoice.parent?.subscription_details?.subscription;
+
+  if (!subscriptionId) return null;
 
   return {
     stripeCustomerId: invoice.customer || '',
-    stripeSubscriptionId: invoice.subscription || '',
+    stripeSubscriptionId: subscriptionId,
     subscriberEmail:
       invoice.customer_email || invoice.customer_details?.email || '',
     subscriberName: invoice.customer_name || '',
-    transactionDateAndTimeISO,
+    transactionDateAndTimeISO: unixToISO(paidAtUnix),
     currency: (invoice.currency || '').toUpperCase(),
     amountPaid: Number(invoice.amount_paid || 0),
   };
@@ -107,19 +111,32 @@ export async function getStripePayments() {
       starting_after: startingAfter,
     });
 
+    // if(isDebug)console.log(`[getStripePayments] page=${JSON.stringify(page,null,2)}`);
+
     const invoices = page.data || [];
     fetchedCount += invoices.length;
+    if (isDebug) console.log(`[getStripePayments] fetchedCount=${fetchedCount}`);
 
     for (const invoice of invoices) {
-      if (!invoice?.subscription) continue;
+      if (isDebug) console.log(`[getStripePayments] check has values`);
+      const subscriptionId =
+        invoice.subscription ||
+        invoice.parent?.subscription_details?.subscription;
 
+      if (!subscriptionId) continue;
+      if (isDebug) console.log(`[getStripePayments] has subscription`);
       const row = normalizeStripeInvoice(invoice);
-
+      if (!row) continue;
       if (!row.stripeCustomerId) continue;
+      if(isDebug)console.log(`[getStripePayments] has stripeCustomerId`);
       if (!row.stripeSubscriptionId) continue;
+      if(isDebug)console.log(`[getStripePayments] has stripeSubscriptionId`);
       if (!row.transactionDateAndTimeISO) continue;
+      if(isDebug)console.log(`[getStripePayments] has transactionDateAndTimeISO`);
       if (!row.currency) continue;
+      if(isDebug)console.log(`[getStripePayments] has currency`);
 
+      if(isDebug)console.log(`[getStripePayments] pushing`);
       rowsToInsert.push(row);
     }
 

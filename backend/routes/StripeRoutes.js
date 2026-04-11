@@ -1,6 +1,7 @@
 import express from 'express';
 import { getStripePayments } from '../tools/Stripe.js';
 import { requireAuth } from '../middleware/auth.js';
+import { isDebug } from '../config.js';
 
 const router = express.Router();
 
@@ -9,6 +10,8 @@ const router = express.Router();
  * GET /api/stripe/get-stripe-payments
  */
 router.get('/get-stripe-payments', requireAuth, async (req, res) => {
+  if(isDebug)console.log('[/get-stripe-payments] Starting Stripe backfill...');
+
   try {
     // Optional: lock this down to admin only
     if (!req.user?.isAdmin) {
@@ -18,11 +21,11 @@ router.get('/get-stripe-payments', requireAuth, async (req, res) => {
       });
     }
 
-    console.log('[StripeRoutes] Starting Stripe backfill...');
+    if(isDebug)console.log('[/get-stripe-payments] Starting Stripe backfill...');
 
     const result = await getStripePayments();
 
-    console.log('[StripeRoutes] Completed:', result);
+    if(isDebug)console.log('[/get-stripe-payments] Completed:', result);
 
     return res.json({
       success: true,
@@ -30,7 +33,7 @@ router.get('/get-stripe-payments', requireAuth, async (req, res) => {
       ...result,
     });
   } catch (err) {
-    console.error('[StripeRoutes] getStripePayments failed:', err);
+    console.error('[/get-stripe-payments] getStripePayments failed:', err);
 
     return res.status(500).json({
       success: false,
