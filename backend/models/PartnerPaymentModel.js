@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-export const PaymentSchema = new mongoose.Schema(
+export const PartnerPaymentSchema = new mongoose.Schema(
   {
     transactionDateAndTimeISO: {
       type: String,

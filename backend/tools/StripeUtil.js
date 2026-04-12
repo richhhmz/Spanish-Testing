@@ -1,0 +1,160 @@
+// backend/utils/StripeUtil.js
+
+const unixToISO = (unixSeconds) => {
+  if (!unixSeconds && unixSeconds !== 0) return '';
+  return new Date(unixSeconds * 1000).toISOString();
+};
+
+const normalizeCurrency = (currency) => {
+  return String(currency || '').trim().toUpperCase();
+};
+
+const normalizeSubscriberName = (invoice) => {
+  return (
+    invoice?.customer_name ||
+    invoice?.customer_details?.name ||
+    invoice?.customer_email ||
+    invoice?.customer_details?.email ||
+    ''
+  );
+};
+
+const normalizeSubscriberEmail = (invoice) => {
+  return (
+    invoice?.customer_email ||
+    invoice?.customer_details?.email ||
+    ''
+  );
+};
+
+/**
+ * Convert one Stripe invoice object into your MongoDB row shape.
+ *
+ * Expected output fields match your Stripe model:
+ * - stripeCustomerId
+ * - stripeSubscriptionId
+ * - subscriberEmail
+ * - subscriberName
+ * - transactionDateAndTimeISO
+ * - currency
+ * - amountPaid
+ *
+ * Returns null if the invoice should not be stored.
+ */
+export const normalizeStripeInvoice = (invoice) => {
+  if (!invoice) return null;
+
+  const stripeCustomerId = invoice?.customer ? String(invoice.customer) : '';
+  const stripeSubscriptionId = invoice?.subscription
+    ? String(invoice.subscription)
+    : '';
+
+  // Prefer the actual paid time. Fall back to created if needed.
+  const paidAtUnix = invoice?.status_transitions?.paid_at;
+  const createdUnix = invoice?.created;
+
+  const transactionDateAndTimeISO = paidAtUnix
+    ? unixToISO(paidAtUnix)
+    : createdUnix
+      ? unixToISO(createdUnix)
+      : '';
+
+  const amountPaid = Number(invoice?.amount_paid ?? 0);
+  const currency = normalizeCurrency(invoice?.currency);
+  const subscriberEmail = normalizeSubscriberEmail(invoice);
+  const subscriberName = normalizeSubscriberName(invoice);
+
+  // Skip rows that do not have the key data your collection expects.
+  if (!stripeCustomerId) return null;
+  if (!stripeSubscriptionId) return null;
+  if (!transactionDateAndTimeISO) return null;
+  if (!currency) return null;
+  if (!Number.isFinite(amountPaid)) return null;
+
+  return {
+    stripeCustomerId,
+    stripeSubscriptionId,
+    subscriberEmail,
+    subscriberName,
+    transactionDateAndTimeISO,
+    currency,
+    amountPaid,
+  };
+};
+
+/**
+ * Build one Mongo bulkWrite upsert operation for a normalized invoice row.
+ *
+ * This assumes your uniqueness rule is based on:
+ *   stripeSubscriptionId + transactionDateAndTimeISO
+ *
+ * If your actual unique index is different, change the filter here
+ * to match it exactly.
+ */
+export const buildStripeInvoiceUpsert = (normalizedRow) => {
+  return {
+    updateOne: {
+      filter: {
+        stripeSubscriptionId: normalizedRow.stripeSubscriptionId,
+        transactionDateAndTimeISO: normalizedRow.transactionDateAndTimeISO,
+      },
+      update: {
+        $set: normalizedRow,
+      },
+      upsert: true,
+    },
+  };
+};
+
+/**
+ * Normalize and insert/upsert a list of Stripe invoices.
+ *
+ * @param {mongoose.Model} StripeModel
+ * @param {Array} invoices - raw Stripe invoice objects
+ *
+ * @returns {Promise<any>}
+ */
+export const insertStripeInvoices = async (StripeModel, invoices) => {
+  if (!StripeModel) {
+    throw new Error('insertStripeInvoices requires StripeModel.');
+  }
+
+  if (!Array.isArray(invoices) || invoices.length === 0) {
+    return {
+      receivedCount: Array.isArray(invoices) ? invoices.length : 0,
+      normalizedCount: 0,
+      upsertedCount: 0,
+      modifiedCount: 0,
+      matchedCount: 0,
+    };
+  }
+
+  const normalizedRows = invoices
+    .map(normalizeStripeInvoice)
+    .filter(Boolean)
+    .sort((a, b) =>
+      a.transactionDateAndTimeISO.localeCompare(b.transactionDateAndTimeISO)
+    );
+
+  if (normalizedRows.length === 0) {
+    return {
+      receivedCount: invoices.length,
+      normalizedCount: 0,
+      upsertedCount: 0,
+      modifiedCount: 0,
+      matchedCount: 0,
+    };
+  }
+
+  const operations = normalizedRows.map(buildStripeInvoiceUpsert);
+
+  const result = await StripeModel.bulkWrite(operations, { ordered: true });
+
+  return {
+    receivedCount: invoices.length,
+    normalizedCount: normalizedRows.length,
+    upsertedCount: result.upsertedCount || 0,
+    modifiedCount: result.modifiedCount || 0,
+    matchedCount: result.matchedCount || 0,
+  };
+};
