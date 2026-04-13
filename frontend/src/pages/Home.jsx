@@ -234,7 +234,7 @@ const HomePage = () => {
      --------------------------------------------------------- */
   const handleSubscribeClick = async () => {
     try {
-      const res = await axios.post('/api/billing/create-checkout-session', {});
+      const res = await axios.post('/api/stripe/create-checkout-session', {});
       if (res.data?.url) {
         window.location.href = res.data.url;
       } else {
@@ -283,7 +283,7 @@ const HomePage = () => {
      --------------------------------------------------------- */
   const handleManageSubscriptionClick = async () => {
     try {
-      const res = await axios.post('/api/billing/customer-portal', {});
+      const res = await axios.post('/api/stripe/customer-portal', {});
       const url = res.data?.url;
 
       if (url) {
