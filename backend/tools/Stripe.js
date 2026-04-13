@@ -58,9 +58,11 @@ export async function getStripePayments() {
   if (isDebug) console.log('[getStripePayments] createIndexes');
   await StripeModel.createIndexes();
 
+  if (isDebug) console.log('[getStripePayments] getStripeClient');
   const stripe = getStripeClient();
 
   // Get latest stored payment
+  if (isDebug) console.log('[getStripePayments] get latest stored payment');
   const newestExisting = await StripeModel.findOne({})
     .sort({ transactionDateAndTimeISO: -1 })
     .lean();
@@ -86,6 +88,7 @@ export async function getStripePayments() {
     matchedCount: 0,
   };
 
+  if (isDebug) console.log(`[getStripePayments] start loop, hasMore=${hasMore}`);
   while (hasMore) {
     const page = await stripe.invoices.list({
       limit: 100,
@@ -95,6 +98,7 @@ export async function getStripePayments() {
     });
 
     const invoices = page.data || [];
+    if (isDebug) console.log(`[getStripePayments] fetchedCount=${fetchedCount}`);
     fetchedCount += invoices.length;
 
     if (isDebug) {
@@ -104,6 +108,7 @@ export async function getStripePayments() {
     }
 
     // ✅ KEY CHANGE: delegate everything to shared util
+    if (isDebug) console.log('[getStripePayments] insertStripeInvoices');
     const summary = await insertStripeInvoices(StripeModel, invoices);
 
     // accumulate totals
@@ -119,6 +124,7 @@ export async function getStripePayments() {
       hasMore && invoices.length > 0
         ? invoices[invoices.length - 1].id
         : undefined;
+    if (isDebug) console.log('[getStripePayments] end hasMore loop');
   }
 
   return {

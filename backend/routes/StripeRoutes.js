@@ -171,9 +171,9 @@ const createStripeRouter = (profilesDBConnection) => {
         });
       }
 
+      if (isDebug) console.log('[/get-stripe-payments] getStripePayments');
       const result = await getStripePayments();
-
-      if (isDebug) console.log('[/get-stripe-payments] Completed:', result);
+      if (isDebug) console.log('[/get-stripe-payments] getStripePayments completed:', result);
 
       return res.json({
         success: true,
