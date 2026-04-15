@@ -44,6 +44,9 @@ const normalizeSubscriberEmail = (invoice) => {
  * Returns null if the invoice should not be stored.
  */
 export const normalizeStripeInvoice = (invoice) => {
+  if(isDebug)console.log(`[normalizeStripeInvoice] begin`);
+  if(isDebug)console.log(`[normalizeStripeInvoice] invoice=${JSON.stringify(invoice,null,2)}`);
+
   if (!invoice) return null;
 
   const stripeCustomerId = invoice?.customer ? String(invoice.customer) : '';
@@ -67,12 +70,22 @@ export const normalizeStripeInvoice = (invoice) => {
   const subscriberName = normalizeSubscriberName(invoice);
 
   // Skip rows that do not have the key data your collection expects.
+  if(isDebug)console.log(`[normalizeStripeInvoice] stripeCustomerId=${stripeCustomerId}`);
   if (!stripeCustomerId) return null;
+
+  if(isDebug)console.log(`[normalizeStripeInvoice] stripeSubscriptionId=${stripeSubscriptionId}`);
   if (!stripeSubscriptionId) return null;
+
+  if(isDebug)console.log(`[normalizeStripeInvoice] transactionDateAndTimeISO=${transactionDateAndTimeISO}`);
   if (!transactionDateAndTimeISO) return null;
+
+  if(isDebug)console.log(`[normalizeStripeInvoice] currency=${currency}`);
   if (!currency) return null;
+  
+  if(isDebug)console.log(`[normalizeStripeInvoice] amountPaid=${amountPaid}`);
   if (!Number.isFinite(amountPaid)) return null;
 
+  if(isDebug)console.log(`[normalizeStripeInvoice] end`);
   return {
     stripeCustomerId,
     stripeSubscriptionId,
@@ -133,6 +146,8 @@ export const insertStripeInvoices = async (StripeModel, invoices) => {
       matchedCount: 0,
     };
   }
+
+  if(isDebug)console.log(`[insertStripeInvoices] invoices=${JSON.stringify(invoices,null,2)}`);
 
   const normalizedRows = invoices
     .map(normalizeStripeInvoice)
