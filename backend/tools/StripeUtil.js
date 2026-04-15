@@ -50,9 +50,11 @@ export const normalizeStripeInvoice = (invoice) => {
   if (!invoice) return null;
 
   const stripeCustomerId = invoice?.customer ? String(invoice.customer) : '';
-  const stripeSubscriptionId = invoice?.subscription
-    ? String(invoice.subscription)
-    : '';
+  const stripeSubscriptionId =
+    invoice?.subscription || // older / simpler invoices
+    invoice?.parent?.subscription_details?.subscription || // your current case
+    invoice?.lines?.data?.[0]?.parent?.subscription_item_details?.subscription || // fallback
+    '';
 
   // Prefer the actual paid time. Fall back to created if needed.
   const paidAtUnix = invoice?.status_transitions?.paid_at;
@@ -81,7 +83,7 @@ export const normalizeStripeInvoice = (invoice) => {
 
   if(isDebug)console.log(`[normalizeStripeInvoice] currency=${currency}`);
   if (!currency) return null;
-  
+
   if(isDebug)console.log(`[normalizeStripeInvoice] amountPaid=${amountPaid}`);
   if (!Number.isFinite(amountPaid)) return null;
 
