@@ -30,8 +30,7 @@ const createStripeRouter = (profilesDBConnection) => {
    *
    * POST /api/stripe/webhook
    */
-  router.post(
-    '/webhook',
+  router.post('/webhook',
     express.raw({ type: 'application/json' }),
     async (req, res) => {
       try {
@@ -53,8 +52,7 @@ const createStripeRouter = (profilesDBConnection) => {
   /* ------------------------- CREATE CHECKOUT SESSION -------------------------
    * POST /api/stripe/create-checkout-session
    */
-  router.post(
-    '/create-checkout-session',
+  router.post('/create-checkout-session',
     requireAuth,
     effectiveUserMiddleware,
     async (req, res) => {
@@ -113,8 +111,7 @@ const createStripeRouter = (profilesDBConnection) => {
   /* ----------------------------- CUSTOMER PORTAL -----------------------------
    * POST /api/stripe/customer-portal
    */
-  router.post(
-    '/customer-portal',
+  router.post('/customer-portal',
     requireAuth,
     effectiveUserMiddleware,
     async (req, res) => {

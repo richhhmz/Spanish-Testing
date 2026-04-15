@@ -1,5 +1,7 @@
 // backend/utils/StripeUtil.js
 
+import { isDebug } from "../config.js";
+
 const unixToISO = (unixSeconds) => {
   if (!unixSeconds && unixSeconds !== 0) return '';
   return new Date(unixSeconds * 1000).toISOString();
@@ -92,6 +94,8 @@ export const normalizeStripeInvoice = (invoice) => {
  * to match it exactly.
  */
 export const buildStripeInvoiceUpsert = (normalizedRow) => {
+  if(isDebug)console.log(`[buildStripeInvoiceUpsert] begin`);
+  if(isDebug)console.log(`[buildStripeInvoiceUpsert] normalizedRow=${JSON.stringify(normalizedRow,null,2)}`);
   return {
     updateOne: {
       filter: {
@@ -115,6 +119,7 @@ export const buildStripeInvoiceUpsert = (normalizedRow) => {
  * @returns {Promise<any>}
  */
 export const insertStripeInvoices = async (StripeModel, invoices) => {
+  if(isDebug)console.log('[insertStripeInvoices] begin');
   if (!StripeModel) {
     throw new Error('insertStripeInvoices requires StripeModel.');
   }
@@ -135,6 +140,7 @@ export const insertStripeInvoices = async (StripeModel, invoices) => {
     .sort((a, b) =>
       a.transactionDateAndTimeISO.localeCompare(b.transactionDateAndTimeISO)
     );
+  if(isDebug)console.log(`[insertStripeInvoices] normalizedRows=${JSON.stringify(normalizedRows,null,2)}`);
 
   if (normalizedRows.length === 0) {
     return {
@@ -147,8 +153,11 @@ export const insertStripeInvoices = async (StripeModel, invoices) => {
   }
 
   const operations = normalizedRows.map(buildStripeInvoiceUpsert);
+  if(isDebug)console.log(`[insertStripeInvoices] operations=${JSON.stringify(operations,null,2)}`);
+
 
   const result = await StripeModel.bulkWrite(operations, { ordered: true });
+  if(isDebug)console.log(`[insertStripeInvoices] bulkWrite result=${JSON.stringify(result,null,2)}`);
 
   return {
     receivedCount: invoices.length,
