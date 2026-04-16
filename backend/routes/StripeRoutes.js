@@ -73,8 +73,43 @@ const createStripeRouter = (profilesDBConnection) => {
 
         let stripeCustomerId = profile.subscription?.stripeCustomerId;
 
+        // If we already have a Stripe customer, verify it actually belongs
+        // to this user before reusing it.
+        if (stripeCustomerId) {
+          try {
+            const existingCustomer = await stripe.customers.retrieve(stripeCustomerId);
+
+            const metadataUserId = existingCustomer?.metadata?.userId;
+            const email = existingCustomer?.email;
+
+            const belongsToThisUser =
+              metadataUserId === userId || email === userId;
+
+            if (!belongsToThisUser) {
+              console.warn(
+                '[/create-checkout-session] Stripe customer mismatch. ' +
+                `profile userId=${userId}, stripeCustomerId=${stripeCustomerId}, ` +
+                `metadata.userId=${metadataUserId}, email=${email}`
+              );
+
+              // Do not reuse a customer that appears to belong to someone else.
+              stripeCustomerId = null;
+            }
+          } catch (err) {
+            console.warn(
+              '[/create-checkout-session] Failed to retrieve existing Stripe customer:',
+              stripeCustomerId,
+              err.message
+            );
+
+            // If Stripe customer is invalid/deleted/etc, create a new one.
+            stripeCustomerId = null;
+          }
+        }
+
         if (!stripeCustomerId) {
           const customer = await stripe.customers.create({
+            email: userId,              // assuming userId is the user's email
             metadata: { userId },
           });
 
@@ -83,11 +118,18 @@ const createStripeRouter = (profilesDBConnection) => {
           await setSubscriptionInfo(userId, profilesDBConnection, {
             stripeCustomerId,
           });
+
+          if (isDebug) {
+            console.log(
+              `[/create-checkout-session] Created Stripe customer ${stripeCustomerId} for ${userId}`
+            );
+          }
         }
 
         const session = await stripe.checkout.sessions.create({
           mode: 'subscription',
           customer: stripeCustomerId,
+          client_reference_id: userId,
           line_items: [
             {
               price: STRIPE_PRICE_ID,
