@@ -57,6 +57,7 @@ const createTestsRouter = (
   const requireRealUserId = (req, res) => {
     // Always use the authenticated user (not effective user) for admin actions
     if (!req.user?.userId) {
+      if(isDebug)console.log(`[requireRealUserId] Unauthorized: userId=${req.user?.userId}`)
       res.status(401).json({ error: 'Unauthorized' });
       return null;
     }
@@ -287,6 +288,7 @@ const createTestsRouter = (
       const userId = req.effectiveUserId;
 
       if (!userId) {
+        if(isDebug)console.log(`[/api/spanish/updateProfile'] Unauthorized: userId=${req.effectiveUserId}`)
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
