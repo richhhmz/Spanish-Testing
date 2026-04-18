@@ -177,6 +177,10 @@ const HomePage = () => {
           } else {
             BackLog("[Home] trial has expired");
             setTrialExpired(true);
+            setTrialActive(false);
+            const res = await axios.put('/api/spanish/updateProfile', {
+              trialActive: false
+            });
           }
         }
       } catch (err) {
