@@ -5,6 +5,7 @@ import {
   defaultLastTestTime,
   defaultLastMessageReadDate,
   defaultTestsPerDay,
+  isDebug,
 } from '../config.js';
 import { getTodaysDate } from '../../frontend/src/utils/Util.js';
 import { getTodaysTime } from '../../frontend/src/utils/Util.js';
@@ -103,6 +104,8 @@ export const countActiveProfiles = async (profilesDBConnection) => {
 export const countActiveTrials = async (profilesDBConnection) => {
   const profileModel = profilesDBConnection.model('Profile', ProfileSchema);
 
+  expireOldTrials(profilesDBConnection);
+  
   const activeTrialsCount = await profileModel.countDocuments({
     'trialActive': true,
   });
@@ -167,4 +170,47 @@ export const setSubscriptionInfo = async (
   );
 
   return updatedProfile;
+};
+
+export const expireOldTrials = async (profilesDBConnection) => {
+  const Profile = profilesDBConnection.model('Profile', ProfileSchema);
+
+  try {
+    // 30 days ago from now
+    const now = new Date();
+    const cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    // Convert trialStartDate (string) → Date inside Mongo query
+    const result = await Profile.updateMany(
+      {
+        trialActive: true,
+        trialStartDate: { $exists: true, $ne: null },
+
+        // Convert string → date and compare
+        $expr: {
+          $lt: [
+            { $dateFromString: { dateString: '$trialStartDate' } },
+            cutoffDate,
+          ],
+        },
+      },
+      {
+        $set: {
+          trialActive: false,
+        },
+      }
+    );
+
+    if(isDebug)console.log(
+      `✅ Expired ${result.modifiedCount} trial(s) older than 30 days`
+    );
+
+    return {
+      status: 200,
+      modifiedCount: result.modifiedCount,
+    };
+  } catch (err) {
+    console.error('💥 Error expiring trials:', err);
+    throw err;
+  }
 };
