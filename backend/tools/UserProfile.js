@@ -104,7 +104,7 @@ export const countActiveProfiles = async (profilesDBConnection) => {
 export const countActiveTrials = async (profilesDBConnection) => {
   const profileModel = profilesDBConnection.model('Profile', ProfileSchema);
 
-  expireOldTrials(profilesDBConnection);
+  await expireOldTrials(profilesDBConnection);
   
   const activeTrialsCount = await profileModel.countDocuments({
     'trialActive': true,
