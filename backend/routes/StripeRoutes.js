@@ -14,7 +14,7 @@ import { requireAuth } from '../middleware/auth.js';
 import effectiveUserMiddleware from '../middleware/EffectiveUser.js';
 import { ProfileSchema } from '../models/ProfileModel.js';
 import { setSubscriptionInfo } from '../tools/UserProfile.js';
-import { getStripePayments } from '../tools/Stripe.js';
+import { getStripePayments } from '../tools/StripePayments.js';
 import { handleStripeWebhook } from '../tools/StripeWebhook.js';
 
 const stripe = new Stripe(STRIPE_SECRET_KEY, {
