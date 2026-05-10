@@ -10,7 +10,6 @@ import { fileURLToPath } from 'url';
 import testsRoute from './routes/TestingRoute.js';
 import createStripeRouter from './routes/StripeRoutes.js';
 import createMagicLinkRoute from './routes/MagicLinkRoute.js';
-import createSubscriptionPaymentsReportRouter from './routes/SubscriptionPaymentsReportRoute.js';
 import {
   PORT,
   isDebug,
@@ -94,10 +93,6 @@ app.use(express.json());
 /* ───────────────────────────── Magic Link Routes ───────────────────────────── */
 /* Mounted at root because /auth/login is in TestingRoute */
 app.use('/', createMagicLinkRoute(appDBConnection, profilesDBConnection));
-
-/* ───────────────────────────── Report Routes ───────────────────────────── */
-
-app.use(createSubscriptionPaymentsReportRouter());
 
 /* ───────────────────────────── Static Frontend ───────────────────────────── */
 if (folderExists) {

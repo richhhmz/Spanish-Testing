@@ -1,7 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import PartnerCapture from './utils/PartnerCapture';
-import SubscriptionPaymentsReport from './pages/SubscriptionPaymentsReport';
 
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -21,6 +20,7 @@ import { Public } from './pages/Public';
 import Problem from './pages/Problem.jsx';
 import MagicLinkLanding from './pages/MagicLinkLanding.jsx';
 import WaitingForEmail from './pages/WaitingForEmail.jsx';
+import StripeSubscriptionPaymentsReport from './pages/StripeSubscriptionPaymentsReport';
 
 const App = () => {
   return (
@@ -49,7 +49,7 @@ const App = () => {
           <Route path="/spanish/editProfile" element={<EditProfile />} />
           <Route path="/resetCache" element={<ResetCache />} />
           <Route path="/problem" element={<Problem />} />
-          <Route path="/subscription-payments-report" element={<SubscriptionPaymentsReport />} />
+          <Route path="/stripe-subscription-payments-report" element={<StripeSubscriptionPaymentsReport />} />
         </Route>
       </Routes>
     </>

@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
-import axios from '../api/AxiosClient';
-import { BackLog } from '../utils/BackLog';
+import axios from '../api/AxiosClient.js';
+import { BackLog } from '../utils/BackLog.js';
 import { isDebug } from '../globals.js';
 
-export default function SubscriptionPaymentsReport() {
+export default function StripeSubscriptionPaymentsReport() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (isDebug) BackLog("[SubscriptionPaymentsReport] begin");
+    if (isDebug) BackLog("[StripeSubscriptionPaymentsReport] begin");
 
     let cancelled = false;
 
@@ -18,16 +18,16 @@ export default function SubscriptionPaymentsReport() {
         setLoading(true);
         setError('');
 
-        const res = await axios.get('/api/billing/subscription-payments-report');
+        const res = await axios.get('/api/stripe/stripe-subscription-payments');
 
         if (!cancelled) {
           setRows(res.data?.data || []);
         }
       } catch (err) {
-        console.error('Failed to load subscription payments report:', err);
+        console.error('Failed to load Stripe subscription payments report:', err);
         if (!cancelled) {
           setError(
-            err?.response?.data?.error || 'Failed to load subscription payments report.'
+            err?.response?.data?.error || 'Failed to load Stripe subscription payments report.'
           );
         }
       } finally {
@@ -128,6 +128,4 @@ const thStyle = {
 
 const tdStyle = {
   textAlign: 'left',
-  borderBottom: '1px solid #eee',
-  padding: '0.75rem',
 };

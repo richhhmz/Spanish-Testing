@@ -14,8 +14,8 @@ import { requireAuth } from '../middleware/auth.js';
 import effectiveUserMiddleware from '../middleware/EffectiveUser.js';
 import { ProfileSchema } from '../models/ProfileModel.js';
 import { setSubscriptionInfo } from '../tools/UserProfile.js';
-import { getStripePayments } from '../tools/StripePayments.js';
 import { handleStripeWebhook } from '../tools/StripeWebhook.js';
+import { getStripeSubscriptionPayments } from '../tools/StripeUtil.js';
 
 const stripe = new Stripe(STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16',
@@ -196,35 +196,26 @@ const createStripeRouter = (profilesDBConnection) => {
     }
   );
 
-  /* ----------------------------- BACKFILL / SYNC -----------------------------
-   * GET /api/stripe/get-stripe-payments
+  /*
+   * /api/stripe/stripe-subscription-payments
    */
-  router.get('/get-stripe-payments', requireAuth, async (req, res) => {
-    if (isDebug) console.log('[/get-stripe-payments] Starting Stripe backfill...');
-
+  router.get('/stripe-subscription-payments', requireAuth, async (req, res) => {
     try {
-      if (!req.user?.isAdmin) {
-        return res.status(403).json({
-          success: false,
-          error: 'Admin only',
-        });
-      }
+      if (isDebug) console.log('[/api/billing/stripe-subscription-payments] begin');
+      const data = await getStripeSubscriptionPayments();
 
-      if (isDebug) console.log('[/get-stripe-payments] getStripePayments');
-      const result = await getStripePayments();
-      if (isDebug) console.log('[/get-stripe-payments] getStripePayments completed:', result);
-
-      return res.json({
-        success: true,
-        message: 'Stripe payments sync completed.',
-        ...result,
+      if (isDebug) console.log('[/api/billing/stripe-subscription-payments] end');
+      return res.status(200).json({
+        status: 200,
+        count: data.length,
+        data,
       });
     } catch (err) {
-      console.error('[/get-stripe-payments] getStripePayments failed:', err);
+      console.error('❌ subscription-payments-report failed:', err);
 
       return res.status(500).json({
-        success: false,
-        error: err.message || 'Failed to sync Stripe payments.',
+        status: 500,
+        error: 'Failed to load subscription payments report',
       });
     }
   });
