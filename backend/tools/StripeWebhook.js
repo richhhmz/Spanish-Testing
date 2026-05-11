@@ -181,6 +181,9 @@ export async function handleStripeWebhook(req, res, options = {}) {
       case 'customer.subscription.updated':
       case 'customer.subscription.created':
       case 'customer.subscription.deleted': {
+        if(event.type === customer.subscription.created){
+          console.log('[StripeWebhook] customer subscription created');
+        }
         if (!profilesDBConnection || !profileModel) {
           if (isDebug) {
             console.warn(
