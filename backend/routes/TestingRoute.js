@@ -118,7 +118,6 @@ const createTestsRouter = (
       const tests = await getAllSpanishWordTests(
         userId,
         words,
-        profilesDBConnection,
         spanishTestsDBConnection
       );
 

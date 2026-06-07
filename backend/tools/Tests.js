@@ -3,10 +3,9 @@ import { TestSchema } from '../models/SpanishTestModel.js'
 import { getProfile, updateProfile } from '../tools/UserProfile.js';
 import { defaultLastTestDate, defaultLastTestTime, defaultPreviousTestDate, spanishTestingName } from '../config.js';
 import { getAllSpanishWords } from '../tools/Words.js';
-import { getTodaysDateUTC } from './Util.js';
 import sanitizeHtml from "sanitize-html";
 
-export const getAllSpanishWordTests = async (userId, spanishWords, profilesDBConnection, spanishTestsDBConnection) => {
+export const getAllSpanishWordTests = async (userId, spanishWords, spanishTestsDBConnection) => {
     const spanishTestModel = spanishTestsDBConnection.model(userId+spanishTestingName, TestSchema);
     const combinedPromises = spanishWords.map(async (wordDoc) => {
         var testDoc = await spanishTestModel.findOne({ word: wordDoc.word });
@@ -68,7 +67,7 @@ export const getTodaysSpanishTests = async (userId, todaysDate, localTime, profi
         const jitterRange = maxJitter - minJitter;
         const jitterFactor = (Math.random() * jitterRange) + minJitter;
 
-        const allSpanishTests = await getAllSpanishWordTests(userId, allSpanishWords, profilesDBConnection, spanishTestsDBConnection);
+        const allSpanishTests = await getAllSpanishWordTests(userId, allSpanishWords, spanishTestsDBConnection);
         allSpanishTests.sort((a, b) => Number(a.wordDoc.rank) - Number(b.wordDoc.rank));
         for (var i = 0; i < allSpanishTests.length; i++) {
             const wordTestDoc = allSpanishTests[i];

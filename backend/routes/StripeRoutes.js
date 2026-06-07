@@ -15,13 +15,14 @@ import effectiveUserMiddleware from '../middleware/EffectiveUser.js';
 import { ProfileSchema } from '../models/ProfileModel.js';
 import { setSubscriptionInfo } from '../tools/UserProfile.js';
 import { handleStripeWebhook } from '../tools/StripeWebhook.js';
-import { getStripeSubscriptionPayments } from '../tools/StripeUtil.js';
+import { getStripeSubscriptionPayments } from '../tools/Stripe.js';
+import { getPartnerPayments } from '../tools/Partner.js';
 
 const stripe = new Stripe(STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16',
 });
 
-const createStripeRouter = (profilesDBConnection) => {
+const createStripeRouter = (appDBConnection, partnerDBConnection, profilesDBConnection) => {
   const router = express.Router();
 
   /* ----------------------------- WEBHOOK -----------------------------
@@ -216,6 +217,42 @@ const createStripeRouter = (profilesDBConnection) => {
       return res.status(500).json({
         status: 500,
         error: 'Failed to load subscription payments report',
+      });
+    }
+  });
+
+  /*
+   * /api/stripe/partner-payments
+   */
+  router.get('/partner-payments', requireAuth, effectiveUserMiddleware, async (req, res) => {
+    try {
+      if (isDebug) console.log('/partner-payments] begin');
+      const userId = req.effectiveUserId;
+      const { month } = req.query;
+      const profileModel =
+        profilesDBConnection.models.Profile ||
+        profilesDBConnection.model('Profile', ProfileSchema);
+      let profile = await profileModel.findOne({ userId });
+
+      const data = await getPartnerPayments(
+        profile,
+        month,
+        appDBConnection,
+        partnerDBConnection,
+        profilesDBConnection
+      );
+      if (isDebug) console.log('[/partner-payments] end');
+      return res.status(200).json({
+        status: 200,
+        count: data.length,
+        data,
+      });
+    } catch (err) {
+      console.error('❌ get partner payments failed:', err);
+
+      return res.status(500).json({
+        status: 500,
+        error: 'Failed to get partner payments',
       });
     }
   });

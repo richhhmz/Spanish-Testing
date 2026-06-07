@@ -6,25 +6,48 @@ export const PartnerPaymentSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    transactionType: { // subscriberPayment, partnerPayment, trialStart, trialEnd, cancelled
+    transactionType: { // subscriberPayment, partnerPayment, monthBegin, monthEnd
       type: String,
       required: true,
     },
-    amount: {
+    subscriberAmount: {
       type: Number,
-      required: true,
+      required: false,
     },
-    partnerBalance: {
+    partnerPercent: {
+      type: Number,
+      required: false,
+    },
+    partnerAmount: {
       type: Number,
       required: true,
     },
     subscriberName: {
       type: String,
-      required: true,
+      required: false,
     },
     partnerName: {
       type: String,
       required: false,
     },
+    isTestAccount: {
+      type: Boolean,
+      default: false,
+    },
+    userPreferredName: {
+      type: String,
+      required: false,
+    },
   },
+);
+
+// Compound unique index
+PartnerPaymentSchema.index(
+  {
+    transactionDateAndTimeISO: 1,
+    transactionType: 1,
+    subscriberName: 1,
+    partnerName: 1,
+  },
+  { unique: true }
 );

@@ -86,6 +86,10 @@ export const ProfileSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isTestAccount: {
+      type: Boolean,
+      default: false,
+    },
     testsPerDay: {
       type: Number,
     },

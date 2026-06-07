@@ -5,40 +5,30 @@ import Stripe from 'stripe';
 import { appDBURL, isDebug } from '../config.js';
 import { StripeSchema } from '../models/StripeDataModel.js';
 import { ProfileSchema } from '../models/ProfileModel.js';
-import { insertStripeInvoices } from './StripeUtil.js';
+import { insertStripeInvoices } from './Stripe.js';
 import { setSubscriptionInfo } from './UserProfile.js';
 
 let appConnection;
-let StripeModel;
 let fallbackStripeClient;
 let indexesEnsured = false;
 
 function getAppConnection() {
-  if (appConnection) return appConnection;
-
-  appConnection = mongoose.createConnection(appDBURL, {
-    autoIndex: true,
-  });
-
-  StripeModel =
-    appConnection.models.Stripe ||
-    appConnection.model('Stripe', StripeSchema, 'stripe_payments');
+  if (!appConnection) {
+    appConnection = mongoose.createConnection(appDBURL, {
+      autoIndex: true,
+    });
+  }
 
   return appConnection;
 }
 
 function getStripeModel() {
-  const conn = getAppConnection();
-
-  if (!StripeModel) {
-    StripeModel =
-      conn.models.Stripe ||
-      conn.model('Stripe', StripeSchema, 'stripe_payments');
-  }
-
-  return StripeModel;
+  return getAppConnection().model(
+    'Stripe',
+    StripeSchema,
+    'stripe_payments'
+  );
 }
-
 function getFallbackStripeClient() {
   if (fallbackStripeClient) return fallbackStripeClient;
 

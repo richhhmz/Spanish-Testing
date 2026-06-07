@@ -1,0 +1,267 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
+import { isDebug } from '../globals.js';
+import { BackLog } from '../utils/BackLog';
+
+function getCurrentMonth() {
+  return new Date().toISOString().slice(0, 7); // yyyy-mm
+}
+
+function addMonths(yyyyMm, delta) {
+  const [year, month] = yyyyMm.split('-').map(Number);
+  const d = new Date(year, month - 1 + delta, 1);
+  return d.toISOString().slice(0, 7);
+}
+
+function formatMoney(value) {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return '';
+  }
+
+  return (value / 100).toLocaleString(undefined, {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function stripEmailEnding(name = '') {
+  return name.replace(/@.*$/, '').trim();
+}
+
+function displayType(transactionType) {
+  switch (transactionType) {
+    case 'subscriberPayment':
+      return 'Subscriber';
+    case 'partnerPayment':
+      return 'Partner';
+    case 'monthBegin':
+      return 'Beginning Balance';
+    case 'monthEnd':
+      return 'Ending Balance';
+    default:
+      return transactionType;
+  }
+}
+
+export function PartnerPaymentReport() {
+  const [month, setMonth] = useState(getCurrentMonth());
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const currentMonth = getCurrentMonth();
+
+  useEffect(() => {
+    async function loadPayments() {
+      setLoading(true);
+      setError('');
+
+      try {
+        const res = await axios.get('/api/stripe/partner-payments', {
+          params: { month },
+        });
+
+        if(isDebug)BackLog(`data=${JSON.stringify(res.data?.data,null,2)}`);
+
+        setPayments(res.data?.data || []);
+      } catch (err) {
+        console.error(err);
+        setError(
+          err.response?.data?.error ||
+            'Unable to load partner payment report.'
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadPayments();
+  }, [month]);
+
+  const sortedPayments = useMemo(() => {
+    return [...payments].sort((a, b) =>
+      String(a.transactionDateAndTimeISO).localeCompare(
+        String(b.transactionDateAndTimeISO)
+      )
+    );
+  }, [payments]);
+
+  const partnerName =
+    sortedPayments.find((p) => p.partnerName)?.partnerName || '';
+
+  const firstMonth = sortedPayments[0]?.transactionDateAndTimeISO?.slice(0, 7);
+
+  const canGoPrevious = true;
+  const canGoNext = month < currentMonth;
+
+  let runningBalance = 0;
+
+  const reportRows = sortedPayments.map((payment) => {
+    const isMonthBegin = payment.transactionType === 'monthBegin';
+    const isMonthEnd = payment.transactionType === 'monthEnd';
+    const isPartnerPayment = payment.transactionType === 'partnerPayment';
+
+    if (isMonthBegin) {
+      runningBalance = payment.partnerAmount || 0;
+    } else if (!isMonthEnd) {
+      isPartnerPayment?runningBalance -= payment.partnerAmount:runningBalance += payment.partnerAmount;
+    }
+
+    const balance = isMonthEnd
+      ? payment.partnerAmount
+      : runningBalance;
+
+    const payName =
+      payment.transactionType === 'subscriberPayment'
+        ? (
+          payment.isTestAccount
+            ? payment.userPreferredName || ''
+            : stripEmailEnding(payment.subscriberName || '')
+        )
+        : payment.partnerName || '';
+
+    return {
+      ...payment,
+      date:
+        isMonthBegin || isMonthEnd
+          ? ''
+          : payment.transactionDateAndTimeISO?.slice(0, 10),
+      typeDisplay: displayType(payment.transactionType),
+      payName,
+      balance,
+      isMonthBegin,
+      isMonthEnd,
+    };
+  });
+
+  return (
+    <div className="max-w-6xl mx-auto p-4">
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold">
+          Partner Payment Report
+        </h1>
+
+        <div className="text-gray-600">
+          {partnerName && <span>{partnerName} — </span>}
+          Month {month}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 mb-4">
+        <button
+          type="button"
+          disabled={!canGoPrevious}
+          onClick={() => setMonth((m) => addMonths(m, -1))}
+          className="px-3 py-1 rounded bg-gray-200 disabled:opacity-40"
+        >
+          Previous
+        </button>
+
+        <div className="font-semibold">{month}</div>
+
+        <button
+          type="button"
+          disabled={!canGoNext}
+          onClick={() => setMonth((m) => addMonths(m, 1))}
+          className="px-3 py-1 rounded bg-gray-200 disabled:opacity-40"
+        >
+          Next
+        </button>
+      </div>
+
+      {loading && <div>Loading...</div>}
+
+      {error && (
+        <div className="mb-4 text-red-600 font-semibold">
+          {error}
+        </div>
+      )}
+
+      {!loading && !error && reportRows.length === 0 && (
+        <div>No partner payments found for {month}.</div>
+      )}
+
+      {!loading && !error && reportRows.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse border border-gray-300 text-sm">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="border border-gray-300 px-2 py-2 text-left">
+                  Date
+                </th>
+                <th className="border border-gray-300 px-2 py-2 text-left">
+                  Type
+                </th>
+                <th className="border border-gray-300 px-2 py-2 text-left">
+                  Name
+                </th>
+                <th className="border border-gray-300 px-2 py-2 text-right">
+                  Subscriber<br />Amount
+                </th>
+                <th className="border border-gray-300 px-2 py-2 text-right">
+                  Partner<br />Share
+                </th>
+                <th className="border border-gray-300 px-2 py-2 text-right">
+                  Partner<br />Amount
+                </th>
+                <th className="border border-gray-300 px-2 py-2 text-right">
+                  Balance
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {reportRows.map((row, index) => (
+                <tr
+                  key={`${row.transactionDateAndTimeISO}-${row.transactionType}-${index}`}
+                  className={
+                    row.isMonthBegin
+                      ? 'bg-blue-50 font-semibold'
+                      : row.isMonthEnd
+                      ? 'bg-green-50 font-semibold'
+                      : ''
+                  }
+                >
+                  <td className="border border-gray-300 px-2 py-2">
+                    {row.date}
+                  </td>
+
+                  <td className="border border-gray-300 px-2 py-2">
+                    {row.typeDisplay}
+                  </td>
+
+                  <td className="border border-gray-300 px-2 py-2">
+                    {row.payName}
+                  </td>
+
+                  <td className="border border-gray-300 px-2 py-2 text-right">
+                    {row.isMonthBegin || row.isMonthEnd
+                      ? ''
+                      : formatMoney(row.subscriberAmount)}
+                  </td>
+
+                  <td className="border border-gray-300 px-2 py-2 text-right">
+                    {row.isMonthBegin || row.isMonthEnd || row.transactionType === 'partnerPayment'
+                      ? ''
+                      : `${row.partnerPercent}%`}
+                  </td>
+                  <td className="border border-gray-300 px-2 py-2 text-right">
+                    {row.isMonthBegin || row.isMonthEnd
+                      ? ''
+                      : formatMoney(row.partnerAmount)}
+                  </td>
+
+                  <td className="border border-gray-300 px-2 py-2 text-right">
+                    {formatMoney(row.balance)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}

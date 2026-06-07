@@ -163,14 +163,13 @@ export async function sendMagicLinkEmail({ to, linkUrl }) {
    Generic / plain email sender
    ────────────────────────────────────────────────────────────── */
 
-export async function sendPlainEmail({ to, subject, message }) {
+export async function sendPlainEmail({ from, to, subject, message }) {
   const normalizedTo = normalizeEmail(to);
 
   if (!subject || typeof subject !== 'string') {
     throw new Error('Email subject must be a non-empty string.');
   }
 
-  const from = 'no-reply@progspanlrn.com';
   const safeMessage = typeof message === 'string'
     ? message
     : JSON.stringify(message ?? {}, null, 2);

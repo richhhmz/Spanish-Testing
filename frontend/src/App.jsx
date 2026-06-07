@@ -13,6 +13,7 @@ import { EditProfile } from './pages/EditProfile';
 import { MessageList } from './pages/MessageList';
 import { QuickWordLookup } from './pages/QuickWordLookup';
 import { TranslationSearch } from './pages/TranslationSearch';
+import { PartnerPaymentReport } from './pages/PartnerPaymentReport';
 import { ResetCache } from './pages/ResetCache';
 import { Ping } from './utils/Ping';
 import { BackLog } from './utils/BackLog';
@@ -50,6 +51,7 @@ const App = () => {
           <Route path="/resetCache" element={<ResetCache />} />
           <Route path="/problem" element={<Problem />} />
           <Route path="/stripe-subscription-payments-report" element={<StripeSubscriptionPaymentsReport />} />
+          <Route path="/partner-payment-report" element={<PartnerPaymentReport />} />
         </Route>
       </Routes>
     </>

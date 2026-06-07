@@ -1,4 +1,4 @@
-// backend/utils/StripeUtil.js
+// backend/utils/Stripe.js
 
 import mongoose from 'mongoose';
 import Stripe from 'stripe';

@@ -18,6 +18,7 @@ import {
   spanishWordsDBURL,
   spanishTestsDBURL,
   appDBURL,
+  partnerDBURL,
 } from './config.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -64,6 +65,7 @@ const profilesDBConnection = mongoose.createConnection(profilesDBURL);
 const spanishWordsDBConnection = mongoose.createConnection(spanishWordsDBURL);
 const spanishTestsDBConnection = mongoose.createConnection(spanishTestsDBURL);
 const appDBConnection = mongoose.createConnection(appDBURL);
+const partnerDBConnection = mongoose.createConnection(partnerDBURL);
 
 // Optional connection logging
 for (const [name, conn] of [
@@ -71,6 +73,7 @@ for (const [name, conn] of [
   ['spanishWordsDB', spanishWordsDBConnection],
   ['spanishTestsDB', spanishTestsDBConnection],
   ['appDB', appDBConnection],
+  ['partnerDB', partnerDBConnection],
 ]) {
   // conn.on('connected', () => console.log(`[DB] ✅ Connected: ${name}`));
   conn.on('error', (err) => console.error(`[DB] ❌ Error (${name}):`, err));
@@ -80,11 +83,12 @@ app.locals.profilesDB = profilesDBConnection;
 app.locals.spanishWordsDB = spanishWordsDBConnection;
 app.locals.spanishTestsDB = spanishTestsDBConnection;
 app.locals.messagesDB = appDBConnection;
+app.locals.partnerDB = partnerDBConnection;
 
 app.use(cookieParser());
 
 /* ───────────────────────────── Stripe Router ───────────────────────────── */
-const stripeRouter = createStripeRouter(profilesDBConnection);
+const stripeRouter = createStripeRouter(appDBConnection, partnerDBConnection, profilesDBConnection);
 app.use('/api/stripe', stripeRouter);
 
 /* ───────────────────────────── Parsers ───────────────────────────── */
