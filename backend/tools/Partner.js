@@ -139,7 +139,6 @@ async function insertPartnerPaymentFromStripe(
 
 async function updateMonthlyBalances(partnerProfile, yearMonth) {
   await sendPlainEmail({
-    from: 'no-reply@progspanlrn.com',
     to: 'support@progspanlrn.com',
     subject: 'Testing Error Email',
     message: '[updateMonthlyBalances] Test problem email',
@@ -204,7 +203,6 @@ async function getPreviousMonthBalance(partnerProfile, previousYearMonth) {
 
   if (!monthBegin) {
     await sendPlainEmail({
-      from: 'no-reply@progspanlrn.com',
       to: 'support@progspanlrn.com',
       subject: 'Code Error Report',
       message: `[getPreviousMonthBalance] Unexpected missing beginning balance for partner ${partnerProfile.partnerName} and month ${previousYearMonth}`,

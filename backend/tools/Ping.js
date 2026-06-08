@@ -65,7 +65,6 @@ export async function runPing(profilesDBConnection, appDBConnection) {
 
     if (isDebug) console.log('[runPing] before sending email');
     await sendPlainEmail({
-      from: 'progspanlrn@gmail.com',
       to: 'progspanlrn@gmail.com',
       subject: 'ping',
       message: payloadJson,
