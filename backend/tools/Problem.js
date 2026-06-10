@@ -30,7 +30,7 @@ export async function runProblem(appDBConnection, {
   // 2️⃣ Send notification email
   try {
     await sendPlainEmail({
-      to: 'progspanlrn@gmail.com',
+      to: 'support@progspanlrn.com',
       subject: `Problem report from ${userEmail}`,
       message: JSON.stringify(
         { userEmail: userEmail, subject: subject, message: message },

@@ -138,12 +138,6 @@ async function insertPartnerPaymentFromStripe(
 }
 
 async function updateMonthlyBalances(partnerProfile, yearMonth) {
-  await sendPlainEmail({
-    to: 'support@progspanlrn.com',
-    subject: 'Testing Error Email',
-    message: '[updateMonthlyBalances] Test problem email',
-  });
-
   const partnerModel = getPartnerModel(partnerProfile.partnerName);
 
   const existingBegin = await getPartnerMonthBegin(partnerProfile.partnerName, yearMonth);
