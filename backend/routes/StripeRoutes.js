@@ -16,7 +16,12 @@ import { ProfileSchema } from '../models/ProfileModel.js';
 import { setSubscriptionInfo } from '../tools/UserProfile.js';
 import { handleStripeWebhook } from '../tools/StripeWebhook.js';
 import { getStripeSubscriptionPayments } from '../tools/Stripe.js';
-import { getPartnerPayments } from '../tools/Partner.js';
+import {
+  getPartnerPayments,
+  getPartnerPaidStatusAndBalance,
+  getPartnersListForAdmin,
+  payPartner
+} from '../tools/Partner.js';
 
 const stripe = new Stripe(STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16',
@@ -224,38 +229,232 @@ const createStripeRouter = (appDBConnection, partnerDBConnection, profilesDBConn
   /*
    * /api/stripe/partner-payments
    */
-  router.get('/partner-payments', requireAuth, effectiveUserMiddleware, async (req, res) => {
-    try {
-      if (isDebug) console.log('/partner-payments] begin');
-      const userId = req.effectiveUserId;
-      const { month } = req.query;
-      const profileModel =
-        profilesDBConnection.models.Profile ||
-        profilesDBConnection.model('Profile', ProfileSchema);
-      let profile = await profileModel.findOne({ userId });
+  router.get(
+    '/partner-payments',
+    requireAuth,
+    effectiveUserMiddleware,
+    async (req, res) => {
+      try {
+        if (isDebug) console.log('[/partner-payments] begin');
+        if (isDebug) console.log('req.originalUrl=', req.originalUrl);
+        if (isDebug) console.log('req.query=', req.query);
 
-      const data = await getPartnerPayments(
-        profile,
-        month,
+        const { month, partnerUserId: requestedPartnerUserId } =
+          req.query || {};
+
+        if (!month) {
+          return res.status(400).json({
+            status: 400,
+            error: 'month is required',
+          });
+        }
+
+        if(isDebug)console.log('req.effectiveUserId=', req.effectiveUserId);
+        if(isDebug)console.log('req.effectiveUserIsAdmin=', req.effectiveUserIsAdmin);
+        if (requestedPartnerUserId && !req.effectiveUserIsAdmin) {
+          return res.status(403).json({
+            status: 403,
+            error: 'Not authorized to view another partner report',
+          });
+        }
+
+        const userId =
+          requestedPartnerUserId || req.effectiveUserId;
+
+        const profileModel =
+          profilesDBConnection.models.Profile ||
+          profilesDBConnection.model('Profile', ProfileSchema);
+
+        const profile = await profileModel.findOne({ userId });
+
+        if (!profile) {
+          return res.status(404).json({
+            status: 404,
+            error: 'Partner profile not found',
+          });
+        }
+
+        const data = await getPartnerPayments(
+          profile,
+          month,
+          appDBConnection,
+          partnerDBConnection,
+          profilesDBConnection
+        );
+
+        if (isDebug) console.log('[/partner-payments] end');
+
+        return res.status(200).json({
+          status: 200,
+          count: data.length,
+          data,
+        });
+      } catch (err) {
+        console.error('❌ get partner payments failed:', err);
+
+        return res.status(500).json({
+          status: 500,
+          error: 'Failed to get partner payments',
+        });
+      }
+    }
+  );
+
+  /*
+   * /api/stripe/partner-outstanding-balance
+   */
+  router.get(
+    '/partner-outstanding-balance',
+    requireAuth,
+    effectiveUserMiddleware,
+    async (req, res) => {
+      try {
+        if (isDebug) {
+          console.log('[/partner-outstanding-balance] begin');
+        }
+
+        const userId = req.effectiveUserId;
+
+        const data = await getPartnerPaidStatusAndBalance(
+          userId,
+          appDBConnection,
+          partnerDBConnection,
+          profilesDBConnection
+        );
+
+        if (isDebug) {
+          console.log('[/partner-outstanding-balance] end');
+        }
+
+        return res.status(200).json({
+          status: 200,
+          data,
+        });
+      } catch (err) {
+        console.error(
+          '❌ get partner outstanding balance failed:',
+          err
+        );
+
+        return res.status(500).json({
+          status: 500,
+          error: 'Failed to get partner outstanding balance',
+        });
+      }
+    }
+  );
+
+  /*
+   * /api/stripe/partners-list
+   */
+  router.get(
+  '/partners-list',
+  requireAuth,
+  effectiveUserMiddleware,
+  async (req, res) => {
+    try {
+      if (isDebug) {
+        console.log('[/partners-list] begin');
+      }
+
+      const data = await getPartnersListForAdmin(
         appDBConnection,
         partnerDBConnection,
         profilesDBConnection
       );
-      if (isDebug) console.log('[/partner-payments] end');
+
+      if (isDebug) {
+        console.log('[/partners-list] end');
+      }
+
       return res.status(200).json({
         status: 200,
         count: data.length,
         data,
       });
-    } catch (err) {
-      console.error('❌ get partner payments failed:', err);
+      } catch (err) {
+        console.error('❌ get partners list failed:', err);
 
-      return res.status(500).json({
-        status: 500,
-        error: 'Failed to get partner payments',
-      });
+        return res.status(500).json({
+          status: 500,
+          error: 'Failed to get partners list',
+        });
+      }
     }
-  });
+  );
+
+  /*
+   * /api/stripe/pay-partner
+   */
+  router.post(
+    '/pay-partner',
+    requireAuth,
+    effectiveUserMiddleware,
+    async (req, res) => {
+      try {
+        if (isDebug) {
+          console.log('[/pay-partner] begin');
+        }
+
+        const { partnerUserId, amountInCents } = req.body || {};
+
+        if (!partnerUserId) {
+          return res.status(400).json({
+            status: 400,
+            error: 'partnerUserId is required',
+          });
+        }
+
+        if (
+          amountInCents === undefined ||
+          amountInCents === null ||
+          Number.isNaN(Number(amountInCents))
+        ) {
+          return res.status(400).json({
+            status: 400,
+            error: 'amountInCents is required',
+          });
+        }
+
+        const profileModel =
+          profilesDBConnection.models.Profile ||
+          profilesDBConnection.model('Profile', ProfileSchema);
+
+        const partnerProfile = await profileModel.findOne({
+          userId: partnerUserId,
+        });
+
+        if (!partnerProfile) {
+          return res.status(404).json({
+            status: 404,
+            error: 'Partner profile not found',
+          });
+        }
+
+        const amount = await payPartner(
+          partnerProfile,
+          partnerDBConnection,
+          Number(amountInCents)
+        );
+
+        if (isDebug) {
+          console.log('[/pay-partner] end');
+        }
+
+        return res.status(200).json({
+          status: 200,
+          amount,
+        });
+      } catch (err) {
+        console.error('❌ pay partner failed:', err);
+
+        return res.status(500).json({
+          status: 500,
+          error: 'Failed to pay partner',
+        });
+      }
+    }
+  );
 
   return router;
 };

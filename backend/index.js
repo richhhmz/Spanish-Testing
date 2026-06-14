@@ -87,12 +87,13 @@ app.locals.partnerDB = partnerDBConnection;
 
 app.use(cookieParser());
 
+/* ───────────────────────────── Parsers ───────────────────────────── */
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 /* ───────────────────────────── Stripe Router ───────────────────────────── */
 const stripeRouter = createStripeRouter(appDBConnection, partnerDBConnection, profilesDBConnection);
 app.use('/api/stripe', stripeRouter);
-
-/* ───────────────────────────── Parsers ───────────────────────────── */
-app.use(express.json());
 
 /* ───────────────────────────── Magic Link Routes ───────────────────────────── */
 /* Mounted at root because /auth/login is in TestingRoute */

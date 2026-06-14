@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
+import axios from '../api/AxiosClient';
 import { isDebug } from '../globals.js';
 import { BackLog } from '../utils/BackLog';
+import { DefaultHeader } from './DefaultHeader.jsx';
 
 function getCurrentMonth() {
-  return new Date().toISOString().slice(0, 7); // yyyy-mm
+  return new Date().toISOString().slice(0, 7);
 }
 
 function addMonths(yyyyMm, delta) {
@@ -51,6 +52,9 @@ export function PartnerPaymentReport() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const searchParams = new URLSearchParams(window.location.search);
+  const partnerUserId = searchParams.get('partnerUserId');
+
   const currentMonth = getCurrentMonth();
 
   useEffect(() => {
@@ -59,11 +63,27 @@ export function PartnerPaymentReport() {
       setError('');
 
       try {
-        const res = await axios.get('/api/stripe/partner-payments', {
-          params: { month },
-        });
+        const params = { month };
 
-        if(isDebug)BackLog(`data=${JSON.stringify(res.data?.data,null,2)}`);
+        if (partnerUserId) {
+          params.partnerUserId = partnerUserId;
+        }
+
+        const url =
+          `/api/stripe/partner-payments?month=${encodeURIComponent(month)}` +
+          (partnerUserId
+            ? `&partnerUserId=${encodeURIComponent(partnerUserId)}`
+            : '');
+
+        if(isDebug)BackLog(`[PartnerPaymentReport] month=${month}`);
+        if(isDebug)BackLog(`[PartnerPaymentReport] partnerUserId=${partnerUserId}`);
+        if(isDebug)BackLog(`[PartnerPaymentReport] api url=${url}`);
+
+        const res = await axios.get(url);
+
+        if (isDebug) {
+          BackLog(`data=${JSON.stringify(res.data?.data, null, 2)}`);
+        }
 
         setPayments(res.data?.data || []);
       } catch (err) {
@@ -78,7 +98,7 @@ export function PartnerPaymentReport() {
     }
 
     loadPayments();
-  }, [month]);
+  }, [month, partnerUserId]);
 
   const sortedPayments = useMemo(() => {
     return [...payments].sort((a, b) =>
@@ -90,8 +110,6 @@ export function PartnerPaymentReport() {
 
   const partnerName =
     sortedPayments.find((p) => p.partnerName)?.partnerName || '';
-
-  const firstMonth = sortedPayments[0]?.transactionDateAndTimeISO?.slice(0, 7);
 
   const canGoPrevious = true;
   const canGoNext = month < currentMonth;
@@ -106,7 +124,11 @@ export function PartnerPaymentReport() {
     if (isMonthBegin) {
       runningBalance = payment.partnerAmount || 0;
     } else if (!isMonthEnd) {
-      isPartnerPayment?runningBalance -= payment.partnerAmount:runningBalance += payment.partnerAmount;
+      if (isPartnerPayment) {
+        runningBalance -= payment.partnerAmount || 0;
+      } else {
+        runningBalance += payment.partnerAmount || 0;
+      }
     }
 
     const balance = isMonthEnd
@@ -115,11 +137,9 @@ export function PartnerPaymentReport() {
 
     const payName =
       payment.transactionType === 'subscriberPayment'
-        ? (
-          payment.isTestAccount
-            ? payment.userPreferredName || ''
-            : stripEmailEnding(payment.subscriberName || '')
-        )
+        ? payment.isTestAccount
+          ? payment.userPreferredName || ''
+          : stripEmailEnding(payment.subscriberName || '')
         : payment.partnerName || '';
 
     return {
@@ -137,131 +157,150 @@ export function PartnerPaymentReport() {
   });
 
   return (
-    <div className="max-w-6xl mx-auto p-4">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold">
-          Partner Payment Report
-        </h1>
+    <div>
+      <DefaultHeader />
 
-        <div className="text-gray-600">
-          {partnerName && <span>{partnerName} — </span>}
-          Month {month}
+      <div className="max-w-6xl mx-auto p-4">
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold">
+            Partner Payment Report
+          </h1>
+
+          <div className="text-gray-600">
+            {partnerName && <span>{partnerName} — </span>}
+            Month {month}
+          </div>
+
+          {partnerUserId && (
+            <div className="text-sm text-gray-500">
+              Partner User ID: {partnerUserId}
+            </div>
+          )}
         </div>
-      </div>
 
-      <div className="flex items-center gap-3 mb-4">
-        <button
-          type="button"
-          disabled={!canGoPrevious}
-          onClick={() => setMonth((m) => addMonths(m, -1))}
-          className="px-3 py-1 rounded bg-gray-200 disabled:opacity-40"
-        >
-          Previous
-        </button>
+        <div className="flex items-center gap-3 mb-4">
+          <button
+            type="button"
+            disabled={!canGoPrevious}
+            onClick={() => setMonth((m) => addMonths(m, -1))}
+            className="px-3 py-1 rounded bg-gray-200 disabled:opacity-40"
+          >
+            Previous
+          </button>
 
-        <div className="font-semibold">{month}</div>
+          <div className="font-semibold">{month}</div>
 
-        <button
-          type="button"
-          disabled={!canGoNext}
-          onClick={() => setMonth((m) => addMonths(m, 1))}
-          className="px-3 py-1 rounded bg-gray-200 disabled:opacity-40"
-        >
-          Next
-        </button>
-      </div>
-
-      {loading && <div>Loading...</div>}
-
-      {error && (
-        <div className="mb-4 text-red-600 font-semibold">
-          {error}
+          <button
+            type="button"
+            disabled={!canGoNext}
+            onClick={() => setMonth((m) => addMonths(m, 1))}
+            className="px-3 py-1 rounded bg-gray-200 disabled:opacity-40"
+          >
+            Next
+          </button>
         </div>
-      )}
 
-      {!loading && !error && reportRows.length === 0 && (
-        <div>No partner payments found for {month}.</div>
-      )}
+        {loading && <div>Loading...</div>}
 
-      {!loading && !error && reportRows.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse border border-gray-300 text-sm">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="border border-gray-300 px-2 py-2 text-left">
-                  Date
-                </th>
-                <th className="border border-gray-300 px-2 py-2 text-left">
-                  Type
-                </th>
-                <th className="border border-gray-300 px-2 py-2 text-left">
-                  Name
-                </th>
-                <th className="border border-gray-300 px-2 py-2 text-right">
-                  Subscriber<br />Amount
-                </th>
-                <th className="border border-gray-300 px-2 py-2 text-right">
-                  Partner<br />Share
-                </th>
-                <th className="border border-gray-300 px-2 py-2 text-right">
-                  Partner<br />Amount
-                </th>
-                <th className="border border-gray-300 px-2 py-2 text-right">
-                  Balance
-                </th>
-              </tr>
-            </thead>
+        {error && (
+          <div className="mb-4 text-red-600 font-semibold">
+            {error}
+          </div>
+        )}
 
-            <tbody>
-              {reportRows.map((row, index) => (
-                <tr
-                  key={`${row.transactionDateAndTimeISO}-${row.transactionType}-${index}`}
-                  className={
-                    row.isMonthBegin
-                      ? 'bg-blue-50 font-semibold'
-                      : row.isMonthEnd
-                      ? 'bg-green-50 font-semibold'
-                      : ''
-                  }
-                >
-                  <td className="border border-gray-300 px-2 py-2">
-                    {row.date}
-                  </td>
+        {!loading && !error && reportRows.length === 0 && (
+          <div>No partner payments found for {month}.</div>
+        )}
 
-                  <td className="border border-gray-300 px-2 py-2">
-                    {row.typeDisplay}
-                  </td>
+        {!loading && !error && reportRows.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse border border-gray-300 text-sm">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="border border-gray-300 px-2 py-2 text-left">
+                    Date
+                  </th>
 
-                  <td className="border border-gray-300 px-2 py-2">
-                    {row.payName}
-                  </td>
+                  <th className="border border-gray-300 px-2 py-2 text-left">
+                    Type
+                  </th>
 
-                  <td className="border border-gray-300 px-2 py-2 text-right">
-                    {row.isMonthBegin || row.isMonthEnd
-                      ? ''
-                      : formatMoney(row.subscriberAmount)}
-                  </td>
+                  <th className="border border-gray-300 px-2 py-2 text-left">
+                    Name
+                  </th>
 
-                  <td className="border border-gray-300 px-2 py-2 text-right">
-                    {row.isMonthBegin || row.isMonthEnd || row.transactionType === 'partnerPayment'
-                      ? ''
-                      : `${row.partnerPercent}%`}
-                  </td>
-                  <td className="border border-gray-300 px-2 py-2 text-right">
-                    {row.isMonthBegin || row.isMonthEnd
-                      ? ''
-                      : formatMoney(row.partnerAmount)}
-                  </td>
+                  <th className="border border-gray-300 px-2 py-2 text-right">
+                    Subscriber<br />Amount
+                  </th>
 
-                  <td className="border border-gray-300 px-2 py-2 text-right">
-                    {formatMoney(row.balance)}
-                  </td>
+                  <th className="border border-gray-300 px-2 py-2 text-right">
+                    Partner<br />Share
+                  </th>
+
+                  <th className="border border-gray-300 px-2 py-2 text-right">
+                    Partner<br />Amount
+                  </th>
+
+                  <th className="border border-gray-300 px-2 py-2 text-right">
+                    Balance
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+
+              <tbody>
+                {reportRows.map((row, index) => (
+                  <tr
+                    key={`${row.transactionDateAndTimeISO}-${row.transactionType}-${index}`}
+                    className={
+                      row.isMonthBegin
+                        ? 'bg-blue-50 font-semibold'
+                        : row.isMonthEnd
+                          ? 'bg-green-50 font-semibold'
+                          : ''
+                    }
+                  >
+                    <td className="border border-gray-300 px-2 py-2">
+                      {row.date}
+                    </td>
+
+                    <td className="border border-gray-300 px-2 py-2">
+                      {row.typeDisplay}
+                    </td>
+
+                    <td className="border border-gray-300 px-2 py-2">
+                      {row.payName}
+                    </td>
+
+                    <td className="border border-gray-300 px-2 py-2 text-right">
+                      {row.isMonthBegin || row.isMonthEnd
+                        ? ''
+                        : formatMoney(row.subscriberAmount)}
+                    </td>
+
+                    <td className="border border-gray-300 px-2 py-2 text-right">
+                      {row.isMonthBegin ||
+                      row.isMonthEnd ||
+                      row.transactionType === 'partnerPayment'
+                        ? ''
+                        : `${row.partnerPercent}%`}
+                    </td>
+
+                    <td className="border border-gray-300 px-2 py-2 text-right">
+                      {row.isMonthBegin || row.isMonthEnd
+                        ? ''
+                        : formatMoney(row.partnerAmount)}
+                    </td>
+
+                    <td className="border border-gray-300 px-2 py-2 text-right">
+                      {formatMoney(row.balance)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

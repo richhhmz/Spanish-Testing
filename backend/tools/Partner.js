@@ -340,7 +340,8 @@ function subtractOneMonth(yearMonth) {
 }
 
 async function insertTestPartnerPayments(partnerName) {
-  const payments = [
+  let payments = [];
+  if (partnerName == 'The Snow White Channel') payments = [
     { paymentDate: '2026-06-05', partnerAmount: 900 },
     { paymentDate: '2026-05-03', partnerAmount: 450 },
     { paymentDate: '2026-04-07', partnerAmount: 450 },
@@ -369,4 +370,148 @@ async function insertTestPartnerPayments(partnerName) {
       }
     );
   }
+}
+
+export async function getPartnerPaidStatusAndBalance(
+  userId,
+  appConn,
+  partnerConn,
+  profilesConn
+) {
+  const partnerProfile = await getProfile(
+    userId,
+    profilesConn
+  );
+
+  if (!partnerProfile) {
+    return {
+      paid: false,
+      balance: 0,
+    };
+  }
+
+  const yearMonth = getYearMonthFromISODateTime(
+    new Date().toISOString()
+  );
+
+  const payments = await getPartnerPayments(
+    partnerProfile,
+    yearMonth,
+    appConn,
+    partnerConn,
+    profilesConn
+  );
+
+  let paid = false;
+  let paidAmount = 0;
+  let balance = 0;
+
+  const monthBegin = payments.find(
+    row => row.transactionType === 'monthBegin'
+  );
+
+  if (monthBegin) {
+    balance = monthBegin.partnerAmount || 0;
+  }
+
+  for (const row of payments) {
+    if (row.transactionType === 'monthBegin') {
+      continue;
+    }
+
+    if (row.transactionType === 'subscriberPayment') {
+      balance += row.partnerAmount || 0;
+    } else if (row.transactionType === 'partnerPayment') {
+      balance -= row.partnerAmount || 0;
+      paid = true;
+      paidAmount = row.partnerAmount;
+    }
+  }
+
+  return {
+    paid,
+    paidAmount,
+    balance,
+  };
+}
+
+export async function getPartnersListForAdmin(
+  appConn,
+  partnerConn,
+  profilesConn
+) {
+  const profileModel =
+    profilesConn.models.Profile ||
+    profilesConn.model('Profile', ProfileSchema);
+
+  const partnerProfiles = await profileModel
+    .find({ isPartner: true })
+    .select('userId partnerName')
+    .sort({ partnerName: 1, userId: 1 })
+    .lean();
+
+  const partners = [];
+
+  for (const partnerProfile of partnerProfiles) {
+    const { paid, paidAmount, balance } =
+      await getPartnerPaidStatusAndBalance(
+        partnerProfile.userId,
+        appConn,
+        partnerConn,
+        profilesConn
+      );
+
+    partners.push({
+      partnerName: partnerProfile.partnerName || '',
+      partnerUserId: partnerProfile.userId,
+      paid,
+      paidAmount,
+      balance,
+    });
+  }
+
+  return partners;
+}
+
+export async function payPartner(
+  partnerProfile,
+  partnerConn,
+  amountInCents
+) {
+  partnerDBConnection = partnerConn;
+
+  const partnerModel = getPartnerModel(partnerProfile.partnerName);
+
+  const currentISO = new Date().toISOString();
+  const yearMonth = getYearMonthFromISODateTime(currentISO);
+
+  await partnerModel.findOneAndUpdate(
+    {
+      transactionDateAndTimeISO: {
+        $gte: `${yearMonth}-00T00:00:00.000Z`,
+        $lte: `${yearMonth}-99T99:99:99.999Z`,
+      },
+      transactionType: 'partnerPayment',
+      partnerName: partnerProfile.partnerName,
+    },
+    {
+      $set: {
+        transactionDateAndTimeISO: currentISO,
+        partnerAmount: amountInCents,
+        partnerName: partnerProfile.partnerName,
+      },
+      $setOnInsert: {
+        transactionType: 'partnerPayment',
+        subscriberName: '',
+        subscriberAmount: 0,
+        partnerPercent: 0,
+      },
+    },
+    {
+      upsert: true,
+      new: true,
+    }
+  );
+
+  return amountInCents;
 }

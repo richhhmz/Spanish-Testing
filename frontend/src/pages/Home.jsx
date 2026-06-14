@@ -455,6 +455,28 @@ const HomePage = () => {
               </Link>
             </li>
 
+            {isPartner && (
+              <li>
+                <Link
+                  to="/partner-payment-report"
+                  className="block py-4 text-center text-blue-600 hover:bg-blue-50"
+                >
+                  Partner Payment Report
+                </Link>
+              </li>
+            )}
+
+            {isAdmin && (
+              <li>
+                <Link
+                  to="/partner-admin-report"
+                  className="block py-4 text-center text-blue-600 hover:bg-blue-50"
+                >
+                  Partner Admin Report
+                </Link>
+              </li>
+            )}
+
             {/* NEW MENU ITEM: Manage Subscription */}
             {showManageSubscription && (
               <li>

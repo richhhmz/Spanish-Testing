@@ -3,7 +3,7 @@ import { getProfile } from '../tools/UserProfile.js';
 export default async function effectiveUserMiddleware(req, res, next) {
   try {
     if (!req.user?.userId) {
-      return next(); // unauthenticated route
+      return next();
     }
 
     const profilesDB = req.app.locals.profilesDB;
@@ -12,10 +12,13 @@ export default async function effectiveUserMiddleware(req, res, next) {
     const profile = await getProfile(realUserId, profilesDB);
 
     req.realUserId = realUserId;
+
     req.effectiveUserId =
       profile.impersonation?.active
         ? profile.impersonation.targetUserId
         : realUserId;
+
+    req.effectiveUserIsAdmin = profile.isAdmin === true;
 
     next();
   } catch (err) {

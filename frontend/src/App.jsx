@@ -22,6 +22,7 @@ import Problem from './pages/Problem.jsx';
 import MagicLinkLanding from './pages/MagicLinkLanding.jsx';
 import WaitingForEmail from './pages/WaitingForEmail.jsx';
 import StripeSubscriptionPaymentsReport from './pages/StripeSubscriptionPaymentsReport';
+import PartnerAdminReport from './pages/PartnerAdminReport';
 
 const App = () => {
   return (
@@ -52,6 +53,7 @@ const App = () => {
           <Route path="/problem" element={<Problem />} />
           <Route path="/stripe-subscription-payments-report" element={<StripeSubscriptionPaymentsReport />} />
           <Route path="/partner-payment-report" element={<PartnerPaymentReport />} />
+          <Route path="/partner-admin-report" element={<PartnerAdminReport />} />
         </Route>
       </Routes>
     </>
