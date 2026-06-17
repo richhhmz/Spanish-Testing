@@ -13,14 +13,15 @@ import {
 import { requireAuth } from '../middleware/auth.js';
 import effectiveUserMiddleware from '../middleware/EffectiveUser.js';
 import { ProfileSchema } from '../models/ProfileModel.js';
-import { setSubscriptionInfo } from '../tools/UserProfile.js';
+import { setSubscriptionInfo, getProfile } from '../tools/UserProfile.js';
 import { handleStripeWebhook } from '../tools/StripeWebhook.js';
 import { getStripeSubscriptionPayments } from '../tools/Stripe.js';
 import {
   getPartnerPayments,
   getPartnerPaidStatusAndBalance,
   getPartnersListForAdmin,
-  payPartner
+  payPartner,
+  getPartnerCounts,
 } from '../tools/Partner.js';
 
 const stripe = new Stripe(STRIPE_SECRET_KEY, {
@@ -451,6 +452,56 @@ const createStripeRouter = (appDBConnection, partnerDBConnection, profilesDBConn
         return res.status(500).json({
           status: 500,
           error: 'Failed to pay partner',
+        });
+      }
+    }
+  );
+
+  /*
+   * /api/stripe/partner-counts
+   */
+  router.get(
+    '/partner-counts',
+    requireAuth,
+    effectiveUserMiddleware,
+    async (req, res) => {
+      try {
+        const profilesDB = req.app.locals.profilesDB;
+
+        let userId = req.effectiveUserId;
+
+        // Admin may request counts for a specific partner
+        if (
+          req.query.partnerUserId &&
+          req.effectiveUserIsAdmin
+        ) {
+          userId = req.query.partnerUserId;
+        }
+
+        const partnerProfile = await getProfile(
+          userId,
+          profilesDB
+        );
+
+        if (!partnerProfile) {
+          return res.status(404).json({
+            error: 'Partner profile not found',
+          });
+        }
+
+        const counts = await getPartnerCounts(
+          partnerProfile.partnerName,
+          profilesDB
+        );
+
+        res.json(counts);
+      } catch (err) {
+        console.error(
+          '[GET /partner-counts] error:',
+          err
+        );
+        res.status(500).json({
+          error: err.message,
         });
       }
     }

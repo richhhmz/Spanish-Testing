@@ -49,13 +49,19 @@ function displayType(transactionType) {
 export function PartnerPaymentReport() {
   const [month, setMonth] = useState(getCurrentMonth());
   const [payments, setPayments] = useState([]);
+  const [memberCounts, setMemberCounts] = useState(null);
+
   const [loading, setLoading] = useState(false);
+  const [countsLoading, setCountsLoading] = useState(false);
+
   const [error, setError] = useState('');
+  const [countsError, setCountsError] = useState('');
 
   const searchParams = new URLSearchParams(window.location.search);
   const partnerUserId = searchParams.get('partnerUserId');
 
   const currentMonth = getCurrentMonth();
+  const isCurrentMonth = month === currentMonth;
 
   useEffect(() => {
     async function loadPayments() {
@@ -69,20 +75,18 @@ export function PartnerPaymentReport() {
           params.partnerUserId = partnerUserId;
         }
 
-        const url =
-          `/api/stripe/partner-payments?month=${encodeURIComponent(month)}` +
-          (partnerUserId
-            ? `&partnerUserId=${encodeURIComponent(partnerUserId)}`
-            : '');
-
-        if(isDebug)BackLog(`[PartnerPaymentReport] month=${month}`);
-        if(isDebug)BackLog(`[PartnerPaymentReport] partnerUserId=${partnerUserId}`);
-        if(isDebug)BackLog(`[PartnerPaymentReport] api url=${url}`);
-
-        const res = await axios.get(url);
+        const res = await axios.get('/api/stripe/partner-payments', {
+          params,
+        });
 
         if (isDebug) {
-          BackLog(`data=${JSON.stringify(res.data?.data, null, 2)}`);
+          BackLog(
+            `[PartnerPaymentReport] payments=${JSON.stringify(
+              res.data?.data,
+              null,
+              2
+            )}`
+          );
         }
 
         setPayments(res.data?.data || []);
@@ -99,6 +103,53 @@ export function PartnerPaymentReport() {
 
     loadPayments();
   }, [month, partnerUserId]);
+
+  useEffect(() => {
+    async function loadMemberCounts() {
+      setMemberCounts(null);
+      setCountsError('');
+
+      if (!isCurrentMonth) {
+        return;
+      }
+
+      setCountsLoading(true);
+
+      try {
+        const params = {};
+
+        if (partnerUserId) {
+          params.partnerUserId = partnerUserId;
+        }
+
+        const res = await axios.get('/api/stripe/partner-counts', {
+          params,
+        });
+
+        if (isDebug) {
+          BackLog(
+            `[PartnerPaymentReport] memberCounts=${JSON.stringify(
+              res.data,
+              null,
+              2
+            )}`
+          );
+        }
+
+        setMemberCounts(res.data || {});
+      } catch (err) {
+        console.error(err);
+        setCountsError(
+          err.response?.data?.error ||
+            'Unable to load partner member counts.'
+        );
+      } finally {
+        setCountsLoading(false);
+      }
+    }
+
+    loadMemberCounts();
+  }, [isCurrentMonth, partnerUserId]);
 
   const sortedPayments = useMemo(() => {
     return [...payments].sort((a, b) =>
@@ -131,9 +182,7 @@ export function PartnerPaymentReport() {
       }
     }
 
-    const balance = isMonthEnd
-      ? payment.partnerAmount
-      : runningBalance;
+    const balance = isMonthEnd ? payment.partnerAmount : runningBalance;
 
     const payName =
       payment.transactionType === 'subscriberPayment'
@@ -155,6 +204,17 @@ export function PartnerPaymentReport() {
       isMonthEnd,
     };
   });
+
+  const countRows = [
+    { label: 'members', count: memberCounts?.totalMembers },
+    { label: 'subscribed', count: memberCounts?.totalSubscribed },
+    { label: 'in trial', count: memberCounts?.totalInTrial },
+    {
+      label: 'trial expired and not subscribed',
+      count: memberCounts?.totalTrialExpiredAndNotSubscribed,
+    },
+    { label: 'subscription canceled', count: memberCounts?.totalCanceled },
+  ];
 
   return (
     <div>
@@ -220,27 +280,21 @@ export function PartnerPaymentReport() {
                   <th className="border border-gray-300 px-2 py-2 text-left">
                     Date
                   </th>
-
                   <th className="border border-gray-300 px-2 py-2 text-left">
                     Type
                   </th>
-
                   <th className="border border-gray-300 px-2 py-2 text-left">
                     Name
                   </th>
-
                   <th className="border border-gray-300 px-2 py-2 text-right">
                     Subscriber<br />Amount
                   </th>
-
                   <th className="border border-gray-300 px-2 py-2 text-right">
                     Partner<br />Share
                   </th>
-
                   <th className="border border-gray-300 px-2 py-2 text-right">
                     Partner<br />Amount
                   </th>
-
                   <th className="border border-gray-300 px-2 py-2 text-right">
                     Balance
                   </th>
@@ -298,6 +352,42 @@ export function PartnerPaymentReport() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {isCurrentMonth && (
+          <div className="mt-4">
+            <h2 className="text-base font-bold mb-1">
+              Member counts for {partnerName || 'partner'}
+            </h2>
+
+            {countsLoading && (
+              <div className="text-sm">Loading member counts...</div>
+            )}
+
+            {countsError && (
+              <div className="mb-2 text-red-600 font-semibold text-sm">
+                {countsError}
+              </div>
+            )}
+
+            {!countsLoading && !countsError && (
+              <table className="text-sm border-collapse">
+                <tbody>
+                  {countRows.map((row) => (
+                    <tr key={row.label}>
+                      <td className="py-0.5 pr-3 text-right font-semibold">
+                        {row.count ?? 0}
+                      </td>
+
+                      <td className="py-0.5">
+                        {row.label}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         )}
       </div>

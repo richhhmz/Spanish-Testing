@@ -515,3 +515,51 @@ export async function payPartner(
 
   return amountInCents;
 }
+
+export async function getPartnerCounts(partnerName, profilesConn) {
+  const ProfileModel =
+    profilesConn.models.Profile ||
+    profilesConn.model('Profile', ProfileSchema, 'profiles');
+
+  const now = new Date();
+  const trialCutoffDate = new Date(now);
+  trialCutoffDate.setDate(trialCutoffDate.getDate() - 30);
+
+  const trialCutoff = trialCutoffDate.toISOString().slice(0, 10);
+
+  const baseQuery = {
+    partnerName,
+    isPartner: { $ne: true },
+  };
+
+  const totalMembers = await ProfileModel.countDocuments(baseQuery);
+
+  const totalSubscribed = await ProfileModel.countDocuments({
+    ...baseQuery,
+    'subscription.status': 'active',
+  });
+
+  const totalInTrial = await ProfileModel.countDocuments({
+    ...baseQuery,
+    trialStartDate: { $gte: trialCutoff },
+  });
+
+  const totalTrialExpiredAndNotSubscribed = await ProfileModel.countDocuments({
+    ...baseQuery,
+    trialStartDate: { $lt: trialCutoff },
+    'subscription.status': { $nin: ['active', 'canceled'] },
+  });
+
+  const totalCanceled = await ProfileModel.countDocuments({
+    ...baseQuery,
+    'subscription.status': 'canceled',
+  });
+
+  return {
+    totalMembers,
+    totalSubscribed,
+    totalInTrial,
+    totalTrialExpiredAndNotSubscribed,
+    totalCanceled,
+  };
+}
