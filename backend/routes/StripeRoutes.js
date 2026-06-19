@@ -56,6 +56,9 @@ const createStripeRouter = (appDBConnection, partnerDBConnection, profilesDBConn
     }
   );
 
+  router.use(express.json());
+  router.use(express.urlencoded({ extended: true }));
+
   /* ------------------------- CREATE CHECKOUT SESSION -------------------------
    * POST /api/stripe/create-checkout-session
    */
