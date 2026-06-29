@@ -3,6 +3,7 @@ import Spinner from '../components/Spinner';
 import axios from '../api/AxiosClient';
 import { useSnackbar } from 'notistack';
 import { setEffectiveUserId } from '../utils/User.js';
+import { defaultLastTestDate} from '../globals.js';
 
 export const EditProfile = () => {
   const { enqueueSnackbar } = useSnackbar();
@@ -150,18 +151,22 @@ export const EditProfile = () => {
               maxWords >= MAX_LIMIT
                 ? 'text-gray-400 cursor-not-allowed'
                 : 'text-blue-600 hover:bg-gray-100'
-            }`}
+              }`}
           >
             +
           </button>
         </div>
 
-        <div className="text-right font-semibold pr-2">
-          Last Test Date:
-        </div>
-        <div className="truncate">
-          {truncate(profileData.lastTestDate)}
-        </div>
+        {profileData.lastTestDate !== defaultLastTestDate && (
+          <>
+            <div className="text-right font-semibold pr-2">
+              Last Test Date:
+            </div>
+            <div className="truncate">
+              {truncate(profileData.lastTestDate)}
+            </div>
+          </>
+        )}
       </div>
 
       <div className="mt-6 flex justify-center gap-8 pb-2">

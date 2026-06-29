@@ -47,6 +47,7 @@ const HomePage = () => {
 
   const [showTrialPopup, setShowTrialPopup] = useState(false);
   const [daysRemaining, setDaysRemaining] = useState(0);
+  const [startingTrial, setStartingTrial] = useState(false);
 
   /* ---------------------------------------------------------
      STEP 1: Ask backend who we are (authoritative)
@@ -255,32 +256,60 @@ const HomePage = () => {
     }
   };
 
-  const handleTrialClick = async () => {
+  const startFreeTrial = async () => {
+    if (startingTrial) return;
+    setStartingTrial(true);
+
     try {
-      // 1. Get today's date in yyyy-mm-dd
       const today = new Date().toISOString().slice(0, 10);
 
-      // 2. Send update to backend
       const res = await axios.put('/api/spanish/updateProfile', {
         trialStartDate: today,
-        trialActive: true
+        trialActive: true,
       });
 
-      // 3. Update local state (important for UI refresh)
       if (res.data?.data) {
         setProfileData(res.data.data);
       } else {
-        // fallback: manually update local state
         setProfileData(prev => ({
           ...prev,
           trialStartDate: today,
         }));
       }
+
       window.location.href = '/';
     } catch (err) {
       console.error('❌ Failed to start trial:', err);
+      setStartingTrial(false);
     }
   };
+
+  /* ---------------------------------------------------------
+   Automatically start free trial for first-time users
+   --------------------------------------------------------- */
+  useEffect(() => {
+    if (loading) return;
+
+    if (
+      !isAdmin &&
+      !isPartner &&
+      !impersonating &&
+      subscriptionStatus !== 'active' &&
+      subscriptionStatus !== 'canceled' &&
+      !trialActive &&
+      !trialExpired
+    ) {
+      startFreeTrial();
+    }
+  }, [
+    loading,
+    isAdmin,
+    isPartner,
+    impersonating,
+    subscriptionStatus,
+    trialActive,
+    trialExpired,
+  ]);
 
 /* ---------------------------------------------------------
      Billing: Manage subscription (Stripe Customer Portal)
@@ -387,17 +416,6 @@ const HomePage = () => {
             className="w-full py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700"
           >
             Subscribe – $5/month
-          </button>
-        </div>
-      )}
-
-      {!isAdmin && !isPartner && !impersonating && !hasActiveSub && !hasCanceledSub && !trialActive && !trialExpired && (
-        <div className="w-full max-w-2xl mb-8 text-center">
-          <button
-            onClick={handleTrialClick}
-            className="w-full py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700"
-          >
-            Start your 30 day free trial and learn Spanish vocabulary faster!
           </button>
         </div>
       )}
