@@ -5,244 +5,531 @@ import { DefaultFooter } from '../../pages/DefaultFooter.jsx';
 class TranslationSearchHtml extends Component {
   constructor(props) {
     super(props);
+
     this.wordsList = props.allSpanishWordsData || [];
 
     this.state = {
-      containsWords: "",
-      doesNotContainWords: "",
-      posFilter: "all",
-      lemmaFilter: "all",
-      posOptions: ["all"],
-      lemmaOptions: ["all"],
+      containsWords: '',
+      doesNotContainWords: '',
+      posFilter: 'all',
+      lemmaFilter: 'all',
+      posOptions: ['all'],
+      lemmaOptions: ['all'],
+      sortColumn: 'Rank',
+      sortDirection: 'asc',
     };
 
     this.searchInputRef = React.createRef();
 
-    // Typeahead buffer for lemma select (instance variables, not state)
-    this.lemmaTypeBuffer = "";
+    // Typeahead buffer for lemma select
+    this.lemmaTypeBuffer = '';
     this.lastLemmaTypeTime = 0;
-    this.typeTimeoutMs = 800; // accumulate keys typed within this window
+    this.typeTimeoutMs = 800;
+    this._lemmaTypeTimeout = null;
+
+    this.handleSort = this.handleSort.bind(this);
   }
 
-  // ------------------------------
-  // Strip accents utility (kept for other uses)
-  // ------------------------------
-  stripAccents = (str) => {
-    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  };
-
   componentDidMount() {
-    if (this.searchInputRef.current) this.searchInputRef.current.focus();
+    if (this.searchInputRef.current) {
+      this.searchInputRef.current.focus();
+    }
 
     // Build POS and lemma options
     const posSet = new Set();
     const lemmaSet = new Set();
 
-    this.wordsList.forEach(item => {
-      (item.entries || []).forEach(e => {
-        if (e.pos) posSet.add(e.pos);
-        if (e.lemma) lemmaSet.add(e.lemma);
+    this.wordsList.forEach((item) => {
+      (item.entries || []).forEach((entry) => {
+        if (entry.pos) {
+          posSet.add(entry.pos);
+        }
+
+        if (entry.lemma) {
+          lemmaSet.add(entry.lemma);
+        }
       });
     });
 
-    const sortedPos = ["all", ...Array.from(posSet).sort()];
-
-    // Accent-sensitive sorting for lemmas (Spanish locale, variant sensitivity)
-    const sortedLemmas = [
-      "all",
-      ...Array.from(lemmaSet).sort((a, b) =>
-        a.localeCompare(b, "es", { sensitivity: "variant" })
+    const sortedPos = [
+      'all',
+      ...Array.from(posSet).sort((a, b) =>
+        a.localeCompare(b, 'es', { sensitivity: 'variant' })
       ),
     ];
 
-    this.setState({ posOptions: sortedPos, lemmaOptions: sortedLemmas });
+    const sortedLemmas = [
+      'all',
+      ...Array.from(lemmaSet).sort((a, b) =>
+        a.localeCompare(b, 'es', { sensitivity: 'variant' })
+      ),
+    ];
+
+    this.setState({
+      posOptions: sortedPos,
+      lemmaOptions: sortedLemmas,
+    });
+  }
+
+  componentWillUnmount() {
+    if (this._lemmaTypeTimeout) {
+      clearTimeout(this._lemmaTypeTimeout);
+    }
   }
 
   // ------------------------------
-  // Lemma select key handler (custom multi-char typeahead, accent-sensitive)
+  // Strip accents
+  // ------------------------------
+  stripAccents = (str) => {
+    return (str || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  };
+
+  // ------------------------------
+  // Sorting
+  // ------------------------------
+  handleSort(column) {
+    const { sortColumn, sortDirection } = this.state;
+
+    let newDirection = 'asc';
+
+    if (sortColumn === column) {
+      newDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+    }
+
+    this.setState({
+      sortColumn: column,
+      sortDirection: newDirection,
+    });
+  }
+
+  getSortValue = (item, column) => {
+    switch (column) {
+      case 'Word':
+        return this.stripAccents((item.word || '').toLowerCase());
+
+      case 'Rank':
+        return typeof item.rank === 'number'
+          ? item.rank
+          : Number.MAX_SAFE_INTEGER;
+
+      case 'POS':
+        return this.stripAccents((item.pos || '').toLowerCase());
+
+      case 'Translation':
+        return this.stripAccents((item.gloss || '').toLowerCase());
+
+      default:
+        return '';
+    }
+  };
+
+  renderSortableHeader = (
+    columnKey,
+    displayTitleHtml,
+    currentSortColumn,
+    currentSortDirection
+  ) => {
+    let icon = '↕';
+    let iconColorClass = 'text-gray-400';
+
+    if (currentSortColumn === columnKey) {
+      icon = currentSortDirection === 'asc' ? '▲' : '▼';
+      iconColorClass = 'text-blue-600';
+    }
+
+    return (
+      <th
+        key={columnKey}
+        className="px-3 py-2 bg-gray-200 border border-gray-300 font-semibold cursor-pointer select-none whitespace-nowrap"
+        onClick={() => this.handleSort(columnKey)}
+      >
+        <span
+          dangerouslySetInnerHTML={{
+            __html: displayTitleHtml,
+          }}
+        />
+
+        <span className={`ml-1 ${iconColorClass}`}>
+          {icon}
+        </span>
+      </th>
+    );
+  };
+
+  // ------------------------------
+  // Lemma select typeahead
   // ------------------------------
   handleLemmaTypeahead = (event) => {
-    // Only handle printable single-character keys
     const key = event.key;
-    if (!key || key.length !== 1) return;
 
-    // We'll treat space as character too, but ignore control keys
+    // Only handle printable single-character keys
+    if (!key || key.length !== 1) {
+      return;
+    }
+
     const now = Date.now();
 
-    // If time since last key is greater than timeout, reset buffer
     if (now - this.lastLemmaTypeTime > this.typeTimeoutMs) {
-      this.lemmaTypeBuffer = "";
+      this.lemmaTypeBuffer = '';
     }
 
     this.lastLemmaTypeTime = now;
-    this.lemmaTypeBuffer += key; // accumulate (case preserved, accents preserved)
+    this.lemmaTypeBuffer += key;
 
-    // Search for first option whose visible text starts with buffer (accent-sensitive)
-    const buffer = this.lemmaTypeBuffer;
-    const bufferLower = buffer.toLowerCase();
-
-    // Use current lemma options (they are accent-sensitive sorted)
-    const opts = this.state.lemmaOptions || [];
+    const bufferLower = this.lemmaTypeBuffer.toLowerCase();
+    const options = this.state.lemmaOptions || [];
 
     let found = null;
-    for (let i = 0; i < opts.length; i++) {
-      const opt = opts[i];
-      if (!opt) continue;
-      // Compare in a case-insensitive but accent-sensitive way:
-      if (opt.toLowerCase().startsWith(bufferLower)) {
-        found = opt;
+
+    for (let i = 0; i < options.length; i += 1) {
+      const option = options[i];
+
+      if (!option) {
+        continue;
+      }
+
+      if (option.toLowerCase().startsWith(bufferLower)) {
+        found = option;
         break;
       }
     }
 
     if (found) {
-      // Prevent browser default typeahead from fighting us
       event.preventDefault();
-      // Update state so the select shows the matched option
-      this.setState({ lemmaFilter: found });
-    } else {
-      // No match for the entire buffer — do not update selection.
-      // We still let the buffer accumulate (or optionally reset).
-      // Optionally reset buffer if no match on first char:
-      if (this.lemmaTypeBuffer.length === 1) {
-        // no match for single key; keep default behavior (do nothing)
-      } else {
-        // if no match for multi-char buffer, you might want to reset buffer to last char
-        // so that continuing typing behaves more naturally. We'll set it to the last char.
-        this.lemmaTypeBuffer = key;
-        // try matching again with last char
-        const lastCharLower = key.toLowerCase();
-        for (let i = 0; i < opts.length; i++) {
-          const opt = opts[i];
-          if (!opt) continue;
-          if (opt.toLowerCase().startsWith(lastCharLower)) {
-            event.preventDefault();
-            this.setState({ lemmaFilter: opt });
-            break;
-          }
+
+      this.setState({
+        lemmaFilter: found,
+      });
+    } else if (this.lemmaTypeBuffer.length > 1) {
+      // Try again using only the most recently typed character
+      this.lemmaTypeBuffer = key;
+
+      const lastCharacterLower = key.toLowerCase();
+
+      for (let i = 0; i < options.length; i += 1) {
+        const option = options[i];
+
+        if (!option) {
+          continue;
+        }
+
+        if (option.toLowerCase().startsWith(lastCharacterLower)) {
+          event.preventDefault();
+
+          this.setState({
+            lemmaFilter: option,
+          });
+
+          break;
         }
       }
     }
 
-    // Clear buffer after timeout automatically (non-blocking)
     clearTimeout(this._lemmaTypeTimeout);
+
     this._lemmaTypeTimeout = setTimeout(() => {
-      this.lemmaTypeBuffer = "";
+      this.lemmaTypeBuffer = '';
       this.lastLemmaTypeTime = 0;
     }, this.typeTimeoutMs + 50);
   };
 
   // ------------------------------
-  // Tokenizer & Highlighting
+  // Tokenizer and matching
   // ------------------------------
   tokenizeSearchInput = (text) => {
-    if (!text || !text.trim()) return [];
+    if (!text || !text.trim()) {
+      return [];
+    }
+
     const quoteCount = (text.match(/"/g) || []).length;
-    if (quoteCount % 2 !== 0) return [];
+
+    // Do not search until unmatched quotes are completed
+    if (quoteCount % 2 !== 0) {
+      return [];
+    }
+
     const tokens = [];
     const regex = /"([^"]+)"|(\S+)/g;
+
     let match;
+
     while ((match = regex.exec(text)) !== null) {
-      if (match[1]) tokens.push({ type: "phrase", value: this.stripAccents(match[1].toLowerCase()) });
-      else if (match[2]) tokens.push({ type: "word", value: this.stripAccents(match[2].toLowerCase()) });
+      if (match[1]) {
+        tokens.push({
+          type: 'phrase',
+          value: this.stripAccents(match[1].toLowerCase()),
+        });
+      } else if (match[2]) {
+        tokens.push({
+          type: 'word',
+          value: this.stripAccents(match[2].toLowerCase()),
+        });
+      }
     }
+
     return tokens;
   };
 
   TranslationContains = (gloss, tokens) => {
-    const text = this.stripAccents((gloss || "").toLowerCase());
-    for (let t of tokens) {
-      if (t.type === "phrase") {
-        if (!text.includes(t.value)) return false;
+    const text = this.stripAccents((gloss || '').toLowerCase());
+
+    for (const token of tokens) {
+      if (token.type === 'phrase') {
+        if (!text.includes(token.value)) {
+          return false;
+        }
       } else {
-        const escaped = t.value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const re = new RegExp(`\\b${escaped}\\b`, "i");
-        if (!re.test(text)) return false;
+        const escaped = token.value.replace(
+          /[.*+?^${}()|[\]\\]/g,
+          '\\$&'
+        );
+
+        const regex = new RegExp(`\\b${escaped}\\b`, 'i');
+
+        if (!regex.test(text)) {
+          return false;
+        }
       }
     }
+
     return true;
   };
 
   TranslationDoesNotContain = (gloss, tokens) => {
-    const text = this.stripAccents((gloss || "").toLowerCase());
-    for (let t of tokens) {
-      if (t.type === "phrase") {
-        if (text.includes(t.value)) return false;
+    const text = this.stripAccents((gloss || '').toLowerCase());
+
+    for (const token of tokens) {
+      if (token.type === 'phrase') {
+        if (text.includes(token.value)) {
+          return false;
+        }
       } else {
-        const escaped = t.value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const re = new RegExp(`\\b${escaped}\\b`, "i");
-        if (re.test(text)) return false;
+        const escaped = token.value.replace(
+          /[.*+?^${}()|[\]\\]/g,
+          '\\$&'
+        );
+
+        const regex = new RegExp(`\\b${escaped}\\b`, 'i');
+
+        if (regex.test(text)) {
+          return false;
+        }
       }
     }
+
     return true;
   };
 
+  // ------------------------------
+  // Highlight matching text
+  // ------------------------------
   highlightMatches = (gloss, tokens) => {
-    if (!gloss) return "";
-    const escapeHtml = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    let escaped = escapeHtml(gloss);
+    if (!gloss) {
+      return '';
+    }
+
+    const escapeHtml = (value) =>
+      value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+    const escapedGloss = escapeHtml(gloss);
     const strippedGloss = this.stripAccents(gloss).toLowerCase();
     const ranges = [];
-    for (const t of tokens) {
-      const token = this.stripAccents(t.value);
-      if (!token) continue;
-      let idx = strippedGloss.indexOf(token);
-      while (idx !== -1) {
-        ranges.push([idx, idx + token.length]);
-        idx = strippedGloss.indexOf(token, idx + 1);
+
+    tokens.forEach((tokenRecord) => {
+      const token = this.stripAccents(tokenRecord.value);
+
+      if (!token) {
+        return;
       }
+
+      let index = strippedGloss.indexOf(token);
+
+      while (index !== -1) {
+        ranges.push([index, index + token.length]);
+        index = strippedGloss.indexOf(token, index + 1);
+      }
+    });
+
+    if (ranges.length === 0) {
+      return escapedGloss;
     }
-    if (ranges.length === 0) return escaped;
 
     // Merge overlapping ranges
     ranges.sort((a, b) => a[0] - b[0]);
-    const merged = [];
+
+    const mergedRanges = [];
     let [start, end] = ranges[0];
-    for (let i = 1; i < ranges.length; i++) {
-      const [s, e] = ranges[i];
-      if (s <= end) {
-        end = Math.max(end, e);
+
+    for (let i = 1; i < ranges.length; i += 1) {
+      const [rangeStart, rangeEnd] = ranges[i];
+
+      if (rangeStart <= end) {
+        end = Math.max(end, rangeEnd);
       } else {
-        merged.push([start, end]);
-        [start, end] = [s, e];
+        mergedRanges.push([start, end]);
+        start = rangeStart;
+        end = rangeEnd;
       }
     }
-    merged.push([start, end]);
 
-    // Build highlighted HTML
-    let result = "";
+    mergedRanges.push([start, end]);
+
+    let result = '';
     let cursor = 0;
-    for (const [s, e] of merged) {
-      const escStart = escapeHtml(gloss.slice(0, s)).length;
-      const escEnd = escapeHtml(gloss.slice(0, e)).length;
-      result += escaped.slice(cursor, escStart);
-      result += `<mark class="bg-yellow-300 rounded px-1">`;
-      result += escaped.slice(escStart, escEnd);
-      result += `</mark>`;
-      cursor = escEnd;
-    }
-    result += escaped.slice(cursor);
+
+    mergedRanges.forEach(([rangeStart, rangeEnd]) => {
+      const escapedStart = escapeHtml(
+        gloss.slice(0, rangeStart)
+      ).length;
+
+      const escapedEnd = escapeHtml(
+        gloss.slice(0, rangeEnd)
+      ).length;
+
+      result += escapedGloss.slice(cursor, escapedStart);
+      result += '<mark class="bg-yellow-300 rounded px-1">';
+      result += escapedGloss.slice(escapedStart, escapedEnd);
+      result += '</mark>';
+
+      cursor = escapedEnd;
+    });
+
+    result += escapedGloss.slice(cursor);
+
     return result;
   };
 
   // ------------------------------
-  // Filtered list
+  // Filter and sort results
   // ------------------------------
   filteredList = () => {
-    const containsTokens = this.tokenizeSearchInput(this.state.containsWords);
-    const notTokens = this.tokenizeSearchInput(this.state.doesNotContainWords);
+    const {
+      containsWords,
+      doesNotContainWords,
+      posFilter,
+      lemmaFilter,
+      sortColumn,
+      sortDirection,
+    } = this.state;
+
+    const containsTokens =
+      this.tokenizeSearchInput(containsWords);
+
+    const notTokens =
+      this.tokenizeSearchInput(doesNotContainWords);
 
     const results = [];
-    this.wordsList.forEach(item => {
+
+    this.wordsList.forEach((item) => {
       const entries = item.entries || [];
+
       entries.forEach((entry, entryIndex) => {
-        const gloss = entry.gloss || "";
-        if (!this.TranslationContains(gloss, containsTokens)) return;
-        if (!this.TranslationDoesNotContain(gloss, notTokens)) return;
-        if (this.state.posFilter !== "all" && entry.pos !== this.state.posFilter) return;
-        if (this.state.lemmaFilter !== "all" && entry.lemma !== this.state.lemmaFilter) return;
-        results.push({ word: item.word, rank: item.rank, gloss, pos: entry.pos, entryIndex });
+        const gloss = entry.gloss || '';
+
+        if (
+          !this.TranslationContains(
+            gloss,
+            containsTokens
+          )
+        ) {
+          return;
+        }
+
+        if (
+          !this.TranslationDoesNotContain(
+            gloss,
+            notTokens
+          )
+        ) {
+          return;
+        }
+
+        if (
+          posFilter !== 'all' &&
+          entry.pos !== posFilter
+        ) {
+          return;
+        }
+
+        if (
+          lemmaFilter !== 'all' &&
+          entry.lemma !== lemmaFilter
+        ) {
+          return;
+        }
+
+        results.push({
+          word: item.word,
+          rank: item.rank,
+          gloss,
+          pos: entry.pos,
+          lemma: entry.lemma,
+          entryIndex,
+        });
       });
+    });
+
+    const sortedResults = [...results].sort((a, b) => {
+      const valueA = this.getSortValue(a, sortColumn);
+      const valueB = this.getSortValue(b, sortColumn);
+
+      let primaryComparison = 0;
+
+      if (
+        typeof valueA === 'string' &&
+        typeof valueB === 'string'
+      ) {
+        primaryComparison = valueA.localeCompare(
+          valueB,
+          'es',
+          { sensitivity: 'base' }
+        );
+      } else if (valueA > valueB) {
+        primaryComparison = 1;
+      } else if (valueA < valueB) {
+        primaryComparison = -1;
+      }
+
+      if (primaryComparison !== 0) {
+        return sortDirection === 'asc'
+          ? primaryComparison
+          : -primaryComparison;
+      }
+
+      // Secondary sort: Rank ascending
+      const rankA =
+        typeof a.rank === 'number'
+          ? a.rank
+          : Number.MAX_SAFE_INTEGER;
+
+      const rankB =
+        typeof b.rank === 'number'
+          ? b.rank
+          : Number.MAX_SAFE_INTEGER;
+
+      if (rankA > rankB) {
+        return 1;
+      }
+
+      if (rankA < rankB) {
+        return -1;
+      }
+
+      // Third sort: Word ascending
+      return this.stripAccents(
+        (a.word || '').toLowerCase()
+      ).localeCompare(
+        this.stripAccents(
+          (b.word || '').toLowerCase()
+        ),
+        'es',
+        { sensitivity: 'base' }
+      );
     });
 
     return (
@@ -250,31 +537,86 @@ class TranslationSearchHtml extends Component {
         <table className="table-auto border border-gray-300 w-auto mb-4">
           <thead>
             <tr>
-              <th className="px-3 py-2 bg-gray-200 border border-gray-300 font-semibold">&nbsp;</th>
-              <th className="px-3 py-2 bg-gray-200 border border-gray-300">Word</th>
-              <th className="px-3 py-2 bg-gray-200 border border-gray-300">Rank</th>
-              <th className="px-3 py-2 bg-gray-200 border border-gray-300">POS</th>
-              <th className="px-3 py-2 bg-gray-200 border border-gray-300">Translation</th>
+              <th className="px-3 py-2 bg-gray-200 border border-gray-300 font-semibold">
+                &nbsp;
+              </th>
+
+              {this.renderSortableHeader(
+                'Word',
+                'Word',
+                sortColumn,
+                sortDirection
+              )}
+
+              {this.renderSortableHeader(
+                'Rank',
+                'Rank',
+                sortColumn,
+                sortDirection
+              )}
+
+              {this.renderSortableHeader(
+                'POS',
+                'POS',
+                sortColumn,
+                sortDirection
+              )}
+
+              {this.renderSortableHeader(
+                'Translation',
+                'Translation',
+                sortColumn,
+                sortDirection
+              )}
             </tr>
           </thead>
+
           <tbody>
-            {results.map((rec, idx) => (
-              <tr key={`${rec.word}-${rec.entryIndex}-${idx}`}>
+            {sortedResults.map((record, index) => (
+              <tr
+                key={`${record.word}-${record.entryIndex}-${index}`}
+              >
                 <td className="px-3 py-2 border border-gray-300">
-                  <a href={`/spanish/viewTest/${rec.word}/ts`} className="text-blue-600 hover:text-blue-800">view</a>
+                  <a
+                    href={`/spanish/viewTest/${record.word}/ts`}
+                    className="text-blue-600 hover:text-blue-800"
+                  >
+                    view
+                  </a>
                 </td>
-                <td className="px-3 py-2 border border-gray-303">{rec.word}</td>
-                <td className="px-3 py-2 border border-gray-303">{rec.rank}</td>
-                <td className="px-3 py-2 border border-gray-303">{rec.pos}</td>
+
+                <td className="px-3 py-2 border border-gray-300">
+                  {record.word}
+                </td>
+
+                <td className="px-3 py-2 border border-gray-300 text-right">
+                  {record.rank}
+                </td>
+
+                <td className="px-3 py-2 border border-gray-300">
+                  {record.pos}
+                </td>
+
                 <td
-                  className="px-3 py-2 border border-gray-303"
-                  dangerouslySetInnerHTML={{ __html: this.highlightMatches(rec.gloss, containsTokens) }}
-                ></td>
+                  className="px-3 py-2 border border-gray-300"
+                  dangerouslySetInnerHTML={{
+                    __html: this.highlightMatches(
+                      record.gloss,
+                      containsTokens
+                    ),
+                  }}
+                />
               </tr>
             ))}
-            {results.length === 0 && (
+
+            {sortedResults.length === 0 && (
               <tr>
-                <td className="px-3 py-2 border border-gray-300" colSpan="5">No results</td>
+                <td
+                  className="px-3 py-2 border border-gray-300"
+                  colSpan="5"
+                >
+                  No results
+                </td>
               </tr>
             )}
           </tbody>
@@ -288,102 +630,153 @@ class TranslationSearchHtml extends Component {
   // ------------------------------
   resetFilters = () => {
     this.setState({
-      containsWords: "",
-      doesNotContainWords: "",
-      posFilter: "all",
-      lemmaFilter: "all",
+      containsWords: '',
+      doesNotContainWords: '',
+      posFilter: 'all',
+      lemmaFilter: 'all',
     });
-    // clear any type buffer
-    this.lemmaTypeBuffer = "";
+
+    this.lemmaTypeBuffer = '';
     this.lastLemmaTypeTime = 0;
+
+    if (this._lemmaTypeTimeout) {
+      clearTimeout(this._lemmaTypeTimeout);
+    }
+
+    if (this.searchInputRef.current) {
+      this.searchInputRef.current.focus();
+    }
   };
 
   // ------------------------------
-  // Render search boxes
+  // Search controls
   // ------------------------------
   renderSearchBox = () => (
     <div>
       <table>
         <tbody>
-          {/* Contains input */}
           <tr>
             <td className="pl-[0.5in] mb-4 text-right">
-              <label className="text-sm font-medium mr-2">Contains the word(s):</label>
+              <label className="text-sm font-medium mr-2">
+                Contains the word(s):
+              </label>
             </td>
+
             <td>
               <input
                 type="text"
                 ref={this.searchInputRef}
-                className="w-64 px-3 py-2 border rounded-md shadow-sm"
+                className="w-64 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 value={this.state.containsWords}
-                onChange={(e) => this.setState({ containsWords: e.target.value.slice(0, 50) })}
+                onChange={(event) =>
+                  this.setState({
+                    containsWords:
+                      event.target.value.slice(0, 50),
+                  })
+                }
               />
             </td>
           </tr>
 
-          {/* Does not contain input */}
           <tr>
             <td className="pl-[0.5in] mb-4 text-right">
-              <label className="text-sm font-medium mr-2">Does not contain the&nbsp;&nbsp;<br />word(s):</label>
+              <label className="text-sm font-medium mr-2">
+                Does not contain the&nbsp;&nbsp;
+                <br />
+                word(s):
+              </label>
             </td>
+
             <td>
               <input
                 type="text"
-                className="w-64 px-3 py-2 border rounded-md shadow-sm"
+                className="w-64 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 value={this.state.doesNotContainWords}
-                onChange={(e) => this.setState({ doesNotContainWords: e.target.value.slice(0, 50) })}
+                onChange={(event) =>
+                  this.setState({
+                    doesNotContainWords:
+                      event.target.value.slice(0, 50),
+                  })
+                }
               />
             </td>
           </tr>
 
           <tr>
-            <td></td>
+            <td />
+
             <td>
               <div className="text-xs text-left m-[0.03125in]">
-                Hint: Put phrases in double quotes, e.g. " (past participle)"
+                Hint: Put phrases in double quotes, for
+                example, &quot;(past participle)&quot;
               </div>
             </td>
           </tr>
 
-          {/* POS and Lemma Dropdowns */}
           <tr>
             <td className="text-right">
-              <label className="text-sm font-medium mr-2">Part of speech (POS):</label>
+              <label className="text-sm font-medium mr-2">
+                Part of speech (POS):
+              </label>
             </td>
+
             <td className="flex space-x-4 items-center">
-              {/* POS Dropdown (native) */}
               <select
-                className="px-3 py-2 border rounded-md shadow-sm"
+                className="px-3 py-2 border border-gray-300 rounded-md shadow-sm"
                 value={this.state.posFilter}
-                onChange={(e) => this.setState({ posFilter: e.target.value })}
+                onChange={(event) =>
+                  this.setState({
+                    posFilter: event.target.value,
+                  })
+                }
               >
-                {this.state.posOptions.map(opt => (
-                  <option key={opt} value={opt}>{opt}</option>
+                {this.state.posOptions.map((option) => (
+                  <option
+                    key={option}
+                    value={option}
+                  >
+                    {option}
+                  </option>
                 ))}
               </select>
 
-              {/* Lemma Dropdown (native) with custom key handler to guarantee multi-char matching) */}
               <div className="flex items-center space-x-2">
-                <label className="text-sm font-medium">Base:</label>
+                <label className="text-sm font-medium">
+                  Base:
+                </label>
+
                 <select
-                  className="px-3 py-2 border rounded-md shadow-sm"
+                  className="px-3 py-2 border border-gray-300 rounded-md shadow-sm"
                   value={this.state.lemmaFilter}
-                  onChange={(e) => this.setState({ lemmaFilter: e.target.value })}
+                  onChange={(event) =>
+                    this.setState({
+                      lemmaFilter:
+                        event.target.value,
+                    })
+                  }
                   onKeyDown={this.handleLemmaTypeahead}
                 >
-                  {this.state.lemmaOptions.map(opt => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
+                  {this.state.lemmaOptions.map(
+                    (option) => (
+                      <option
+                        key={option}
+                        value={option}
+                      >
+                        {option}
+                      </option>
+                    )
+                  )}
                 </select>
               </div>
             </td>
           </tr>
 
-          {/* Reset button */}
           <tr>
-            <td></td>
+            <td />
+
             <td className="mt-2">
               <button
+                type="button"
                 className="mt-2 px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700"
                 onClick={this.resetFilters}
               >
@@ -392,7 +785,12 @@ class TranslationSearchHtml extends Component {
             </td>
           </tr>
 
-          <tr><td colSpan="2" className="h-[0.25in]"></td></tr>
+          <tr>
+            <td
+              colSpan="2"
+              className="h-[0.25in]"
+            />
+          </tr>
         </tbody>
       </table>
     </div>
@@ -402,11 +800,16 @@ class TranslationSearchHtml extends Component {
     return (
       <div>
         <DefaultHeader />
+
         <div className="mb-6">
-          <h1 className="text-3xl font-bold ml-[0.75in]">Translation Search</h1>
+          <h1 className="text-3xl font-bold ml-[0.75in]">
+            Translation Search
+          </h1>
         </div>
+
         {this.renderSearchBox()}
         {this.filteredList()}
+
         <DefaultFooter />
       </div>
     );
