@@ -7,6 +7,8 @@ import { StripeSchema } from '../models/StripeDataModel.js';
 import { ProfileSchema } from '../models/ProfileModel.js';
 import { insertStripeInvoices } from './Stripe.js';
 import { setSubscriptionInfo } from './UserProfile.js';
+import { sendPlainEmail } from '../tools/email.js';
+
 
 let appConnection;
 let fallbackStripeClient;
@@ -182,7 +184,7 @@ export async function handleStripeWebhook(req, res, options = {}) {
         }
 
         const sub = event.data.object;
-        if(isDebug)console.log(`[StripeWebHook] event.data.object = ${event.data.object}`);
+        if(isDebug)console.log(`[StripeWebHook] event.data.object = ${JSON.stringify(event.data.object,null,2)}`);
         const stripeCustomerId =
           typeof sub.customer === 'string' ? sub.customer : sub.customer?.id;
 
@@ -255,6 +257,11 @@ export async function handleStripeWebhook(req, res, options = {}) {
     return res.status(200).json({ received: true });
   } catch (err) {
     console.error('[StripeWebhook] Processing error:', err);
+    await sendPlainEmail({
+      to: 'support@progspanlrn.com',
+      subject: 'Webhook Processing Error',
+      message: `[StripeWebhook] Processing error: ${err}`,
+    });
     return res.status(500).send('Webhook handler error');
   }
 }
