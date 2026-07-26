@@ -171,9 +171,7 @@ export async function handleStripeWebhook(req, res, options = {}) {
       case 'customer.subscription.updated':
       case 'customer.subscription.created':
       case 'customer.subscription.deleted': {
-        if(event.type === customer.subscription.created){
-          console.log('[StripeWebhook] customer subscription created');
-        }
+        console.log(`[StripeWebhook] event.type=${event.type}`);
         if (!profilesDBConnection || !profileModel) {
           if (isDebug) {
             console.warn(
@@ -184,6 +182,7 @@ export async function handleStripeWebhook(req, res, options = {}) {
         }
 
         const sub = event.data.object;
+        if(isDebug)console.log(`[StripeWebHook] event.data.object = ${event.data.object}`);
         const stripeCustomerId =
           typeof sub.customer === 'string' ? sub.customer : sub.customer?.id;
 
