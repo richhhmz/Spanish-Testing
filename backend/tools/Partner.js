@@ -346,6 +346,7 @@ async function insertTestPartnerPayments(partnerName) {
     { paymentDate: '2026-05-03', partnerAmount: 450 },
     { paymentDate: '2026-04-07', partnerAmount: 450 },
     { paymentDate: '2026-03-04', partnerAmount: 150 },
+    { paymentDate: '2026-07-04', partnerAmount: 1050 },
   ];
 
   const partnerModel = getPartnerModel(partnerName);
