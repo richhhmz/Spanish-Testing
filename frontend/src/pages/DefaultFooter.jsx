@@ -11,7 +11,7 @@ export const DefaultFooter = () => {
         <p>
           View the tutorial video{' '}
           <a
-            href="https://youtu.be/3yqNRygKRH8"
+            href="https://youtu.be/9HKCTPteHls"
             target="_blank"
             rel="noopener noreferrer"
             className="underline hover:text-blue-600"
