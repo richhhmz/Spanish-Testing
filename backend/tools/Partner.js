@@ -110,7 +110,16 @@ async function insertPartnerPaymentFromStripe(
   }
 
   const subscriberAmount = stripeDocument.amountPaid || 0;
-  const partnerPercent = partnerProfile.partnerPercent || 0;
+
+  // Partner earns commissions only after the agreement becomes active.
+  const partnerActiveDateUTC = partnerProfile.partnerActiveDateUTC;
+
+  const partnerPercent =
+    partnerActiveDateUTC &&
+      stripeDocument.transactionDateAndTimeISO >= partnerActiveDateUTC
+      ? (partnerProfile.partnerPercent || 0)
+      : 0;
+
   const partnerAmount = Math.round(subscriberAmount * partnerPercent) / 100;
 
   await partnerModel.updateOne(
@@ -342,7 +351,7 @@ function subtractOneMonth(yearMonth) {
 async function insertTestPartnerPayments(partnerName) {
   let payments = [];
   if (partnerName == 'The Snow White Channel') payments = [
-    { paymentDate: '2026-06-05', partnerAmount: 900 },
+    { paymentDate: '2026-06-05', partnerAmount: 1050 },
     { paymentDate: '2026-05-03', partnerAmount: 450 },
     { paymentDate: '2026-04-07', partnerAmount: 450 },
     { paymentDate: '2026-03-04', partnerAmount: 150 },

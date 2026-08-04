@@ -161,6 +161,10 @@ export const ProfileSchema = new mongoose.Schema(
       type: Number,
       required: false,
     },
+    partnerActiveDateUTC: {
+      type: String,
+      required: true,
+    },
 
     /**
      * Subscription / Stripe billing state.
