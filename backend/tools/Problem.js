@@ -20,7 +20,7 @@ export async function runProblem(appDBConnection, {
     messageType: 'problem',
     messageDateAndTime: now.toISOString(), // sortable, ISO-safeil,
     messageFrom: userEmail,
-    messageTo: 'progspanlrn@gmail.com',
+    messageTo: 'support@progspanlrn.com',
     subject: subject,
     message: message,
   });
