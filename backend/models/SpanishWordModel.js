@@ -22,6 +22,6 @@ export const WordSchema = new mongoose.Schema({
   word: { type: String, required: true, index: true, unique: true },
   rank: { type: Number, required: true, unique: true },
   entries: { type: [EntrySchema], required: true },
-  updatedAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date },
   updatedBy: { type: String },
 });

@@ -386,6 +386,14 @@ class ViewSpanishTestHtml extends Component {
           </div>
         )}
         <DefaultFooter />
+        {viewSpanishTestData.wordDoc?.updatedAt && (
+          <div className="text-left text-sm -mt-4">
+            This word was last updated on{' '}
+            {new Date(viewSpanishTestData.wordDoc.updatedAt)
+              .toISOString()
+              .slice(0, 10)}.
+          </div>
+        )}
       </div>
     );
   }
