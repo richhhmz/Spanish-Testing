@@ -163,7 +163,7 @@ export const ProfileSchema = new mongoose.Schema(
     },
     partnerActiveDateUTC: {
       type: String,
-      required: true,
+      required: false,
     },
 
     /**
