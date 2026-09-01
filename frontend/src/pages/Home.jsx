@@ -113,9 +113,9 @@ const HomePage = () => {
         const profile = res.data.data;
         setProfileData(profile);
         setIsPartner(profile.isPartner);
-        
+
         // if(isDebug) BackLog(`[Home] profile=${JSON.stringify(profile,null,2)}`)
-        if(isDebug) BackLog(`[Home] after getProfile`);
+        if (isDebug) BackLog(`[Home] after getProfile`);
 
         // ---------------------------------------------------------
         // PARTNER CAPTURE → update profile once
@@ -200,10 +200,32 @@ const HomePage = () => {
     }, 60000);
 
   }, [effectiveUserId]);
-
   /* ---------------------------------------------------------
-     Admin → start impersonation
-     --------------------------------------------------------- */
+       STEP 3: Handle billing return query parameters
+       --------------------------------------------------------- */
+  useEffect(() => {
+    const queryParams = new URLSearchParams(window.location.search);
+    const billingStatus = queryParams.get('billing');
+
+    if (billingStatus === 'success' || billingStatus === 'already-subscribed') {
+      // 🚀 Optimistically update state so the UI hides the subscribe button 
+      // and unlocks the menu immediately, bypassing webhook lag.
+      setSubscriptionStatus('active');
+
+      enqueueSnackbar(
+        billingStatus === 'success'
+          ? 'Payment successful! Updating your account...'
+          : 'You already have an active subscription!',
+        { variant: 'success' }
+      );
+
+      // Clean up the URL query parameter without a full reload
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [enqueueSnackbar]);
+  /* ---------------------------------------------------------
+   Admin → start impersonation
+   --------------------------------------------------------- */
   const handleImpersonateSubmit = async (e) => {
     e.preventDefault();
     if (!impersonateUser.trim()) return;

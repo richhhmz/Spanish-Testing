@@ -134,8 +134,22 @@ const createStripeRouter = (appDBConnection, partnerDBConnection, profilesDBConn
               `[/create-checkout-session] Created Stripe customer ${stripeCustomerId} for ${userId}`
             );
           }
-        }
+        } else {
+          // 🔍 Check if this customer already has an active subscription in Stripe
+          const subscriptions = await stripe.subscriptions.list({
+            customer: stripeCustomerId,
+            status: 'active',
+            limit: 1,
+          });
 
+          if (subscriptions.data.length > 0) {
+            if (isDebug) {
+              console.log(`[/create-checkout-session] Customer ${stripeCustomerId} already has an active subscription.`);
+            }
+            // Return success URL directly or a flag so frontend routes them home
+            return res.json({ url: `${FRONTEND_ORIGIN}/?billing=already-subscribed` });
+          }
+        }
         const session = await stripe.checkout.sessions.create({
           mode: 'subscription',
           customer: stripeCustomerId,
